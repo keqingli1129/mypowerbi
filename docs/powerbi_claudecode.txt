@@ -1,0 +1,302 @@
+In this video, we will try to create PowerBI report using claude AI. We will not do anything from our side.
+Everything should be done using claude. So, let's see how it is done. So, first of all, you will see this is the output.
+This is how we want to see the dashboard. So, this is the retail performance overview. You will see there
+is the navigation as well. So, if you click on the product from here, then it should go to the product and if you
+click on the store, it should go to the stores page. And if you click on customers then it should go to the
+customers page as well. And you can see this interface is not very good. You can
+see it is kind of buggy but this is created using claude [clears throat] and then we can improvise on it. But for now
+how to create this using cloud step by step. Let's go ahead. All right. So in order to achieve this first we will go
+Start with PBIP + Bridge Enabled (Step 1)
+to PowerBI desktop and if you can see on the top this is a PowerBI project file.
+So that is PBI. So if you go to file and go to save as.
+So you should be able to see this format. So instead of PBIX which was default. So you have to select PBIP file
+and uh save as a particular name and then remember that. So I'll just copy this name and press save. Right? So you
+want to replace I will say yes I will replace. So now you will see here in
+this PowerBI project file you will see there are five tables. So there are four
+dimension tables and one fact table right. So if you go to the table view and you will see all these tables you
+can drill down. So in a nutshell I can tell you this is a retail data set. So
+you can do analysis kind of uh related to product or store or the customers the
+churn ratio all those things and you can also overall see the sales analysis or
+forecasting for the particular store as well. Right? So if you go to the model view you will see it is a pretty much
+simple star schema. You have fact table in the middle and then dimensions all across and it will be one to many
+relationship going from dimension towards the fact table. So pretty much very straightforward, very good.
+Currently, as you can see in the model, there is no measure as such. So what I'll do is I will connect this PowerBI
+file with Claude using PowerBI MCP and then I will ask Claude to create all the
+measures and create the four page PowerBI report that we want. Right? So
+this is the basic structure. So for that first of all the format should be PowerBI project file which I told you
+and then second thing if you go to files go to options and settings and click on options. So there is one more feature
+which is a bridge. So what bridge skill does is so if you go to preview features
+and look for enable external tool access to powerba desktop through secure local APIs. So what this enabling does is it
+connects directly and through claude it will connect to PowerBI project file and it will take screenshots of your pages
+and it will reiterate instead of you know it creates and then you tell claude
+that hey this is good this is bad modify this and that so it can see it itself and uh self-improvement is the key over
+here. All right. So keep this enabled so that you can uh use or see that while
+working on claude. All right. So now let's go straight away to claw. All right. So now we are on claude and you
+Claude Settings (Folder, Authoring Skills, Power BI MCP)
+can see over here we need to modify a couple of settings over here. First of all you need to make sure the folder is
+correct. So this folder should have your PBIP file. So whatever the PBIP file
+that you're working on, it should be inside this folder. And then for now in my use case I'm using bypass permissions
+so that it can accept all the permissions without me interrupting. So I can walk away and it will do it for
+me. Right. Click on bypass and you should know what you're doing and it is not really suggested when you're working
+on production work. So for now this is good. And then I will use sonnet 5
+because that's good enough for what I'm trying to do. Opus 5 takes a lot of more tokens and uh you can see the difference
+while working on it and you can look for other models as well if you feel like but for now sonet 5 is good enough and
+this is high that's fine all right so what I'll do is can you connect to the
+[sighs and gasps] PBIP file let's see what it says while it's
+working out let me show you one of the prompts which I will use in this one. So let me open my notebook. So over here
+Prompt #1 (Step 2)
+you will see create four pages. So this is the task that I have to create PBIP
+project which is at this and using PowerBI report authoring skill build four page PowerBI report executive
+summary product analysis store analysis and customer analysis. Remove
+any existing page if there is any and create the semantic model with the DAX measures which is there if not and then
+you can modify. So environment is pretty much like this and then you have to mention that this has to be important.
+Do not create the model through the modeling MCP connection and write the model directly as timal on disk. Right?
+And then you can provide a particular format. So in this scenario I have this data model. So I have four dimensions
+and one fact table and then facts to know and all those things. You can add these uh calculated columns if you feel
+like and then design structure and then these are the page layout. So page one should have this and that all those
+things. So uh it should also have navigation rails and bookmarks. So I want to keep navigation so I can move
+from one page to another and how the filters and interactions should work. So you can have one more section for that
+and known PBI traps as well. So just make sure this doesn't work and verification loop. So do not skip. So
+whenever you're using so use PowerBI report author validate. So if there's error then revalidate and uh work on
+that. So using PowerBI modeling M MCP as well. So you will also use PowerBI desktop screenshot all. So looking at
+every page right. So finally report back tell me what you built what each
+verification round c got and fix and any judgment calls you made and anything you deliberately left out. So I will copy
+this. So first of all before copying let me rename the file name. So if you see
+over here I'll just copy this. Ctrl all and find. And you will see there is a
+pop-up and replace. So I'll find this and replace with this advanced
+YT. This is our PBIP file now. So I will replace all. So it replaced one
+occurrence. So that's all right. I guess there were
+two. So if you see over here,
+this was one. Okay. So over here it should be underscoreyt like this and we
+are good to go. So I'll just copy this and minimize.
+All right. So now you can see it has connected found exactly one running PowerBI desktop instance and its window
+title is this connected. All right. So now I will give this instruction.
+So with this instruction it should create four pages in our PowerBI file.
+As you can see, PowerBI report authoring skill is running. So that's what we want
+and this is the important one. After working this, I will show you how the data is flowing because there are
+multiple scales and then there is PowerBI MCP, then there is bridge, then I'll show you how the data is flowing,
+which scale is used when. So that is important to understand. Quickly before we continue with our video, if you're a
+Upcoming Agentic Course
+PowerBI professional and you want to understand how AI agents are going to change the way we work with PowerBI, I
+have just launched my new course on agentic AI for PowerBI. It is a practical course where I'll show you how
+to actually build and use AI agents with PowerBI, not just talk about AI
+theoretically. I have opened early access and first 50 students can join at a special launch price. So if you're
+interested do check out the link in the description below and you will see all
+these topics in there and you will come with the complete project at the end.
+All right. So now let's go into the video. All right. So now let me explain you the architecture how the data is
+Agentic Reporting Workflow
+flowing how this agentic flow is working in PowerBI and this has been explained in previous videos as well. But let me
+reiterate because this is really important. So if you see PowerBI June 2026 feature update. So I'll just scroll
+down to the section where it is explained. So if you see here figure is PowerBI agentic reporting workflow. So
+this is the end toend reporting workflow which has various stages like plan then design then authoring then validating
+and finally publishing. So for each and every stage we have different skill. So if you zoom in you will see so this is
+you. So you are a PowerBI developer. So you will do natural language request to the chat or LLM. So in our case what we
+did was using claude. So in claude what we did was we went to claude and we said
+hey can you connect to our PBIP file and then do this and that. So what this
+PowerBI report planner does is it defines the specifications then it will
+see what all has to be done. So we already created a prompt with all the information like it should be four pages
+and it should be all those things. So it understoods that and it will save in the
+memory right. So now it has that particular context then report design it
+will create all the charts. So it will do all the color all the layer all the
+layout of all the four pages. So how many KPIs it should have cards and then how many bar charts or uh any particular
+donut chart or any map is required or all those things. So this is what it will do. It will also have inbuilt theme
+of PowerBI which is so good. And then finally PowerBI report authoring. So
+this will provide you with the PB schemas and then uh it can you be used
+for validating the report. So once this is done using PowerBI desktop which has
+the bridge. So once you enable through the preview feature which I showed you earlier. [snorts] So once you enable
+this then it can take the screenshots of the dashboard and then it can take
+screenshots and go back to cloud and see if there is any update required and it will reiterate again and again without
+me coming into the picture right I'm not telling claude that hey this is wrong do this it is automatically saying through
+the screenshot that this doesn't look nice so it will improve right so this is the beauty of uh this particular flow
+and we have to use pvip file for that And finally you can connect and then
+once everything is done you can save and you can publish to powerbi services and similarly you can connect through fabric
+worksp space as well. So this is what it explains. All right. So after more than 10 minutes it ran everything. You can
+see over here it edited the model timl file. Then updated some measures. Over here you can see then it generated
+everything successfully. It says then there are there were few few errors. So it inspected itself, diagnosed
+completely. Now there are zero errors, zero warnings and then it went to desktop verification loop using various
+task which were defined inside the authoring skills. Right? And then you can see over here it is using the
+plug-in PowerBI modeling MCP. So if you don't know how to connect your PowerBI
+file to your cloud or any other AI um uh LLM, so you need to know how to connect
+with the MCP and I have already created a video. It should be in your top right
+uh window screen. So you can watch that as well. Right? So now once you have that you have you can see it has
+reloaded successfully and if you go down now it is taking the screenshots of the
+images created and then it will understand what is right what is wrong and it will rebuild all the things and
+uh there are some judgment calls uh what's right what's wrong deliberately script some some of the things then we
+can come back so let me open the powerbi file now so now if you see over here
+Claude Output #1
+[snorts] in execute If it is summary you can see it has various cards then the column
+chart column chart for month wise or year- wise then it has donut chart bar
+charts as well right so this is the navigation bar so this doesn't look good
+as you can see here but it has created so now if let me see if I want to go to product if I click here will it go yes
+so at least the navigation is working it doesn't look great but conceptually it
+is working. So now if you go to product analysis you can see there are multiple KPIs then various charts over here and
+if I go to store analysis then again it has this then if you go to customer analysis it has this. So there are pros
+and cons of what we have done so far. So if we start with the pros so you can see
+there is a good starting point. I mean I didn't do anything. It created all the measures. If you can see on the right
+hand side you can see it has created beautifully captured in all the folders inside core time intelligence product
+store customer. So it has beautifully captured and uh documented well. Second
+good part this looks decent. I mean with this you can basic uh you can have a
+basic understanding of you know what kind of uh data we have. Total sales is
+4 millions gross profit somewhere around 2 million for the particular year. selected and then you can select a
+particular country to see some kind of insights. Now you need to validate that if that is correct or not that is a
+different thing but from the look of it from the uh first point of view this is
+fine but there are many cons many cons con number one the colors I hate the
+colors it has used so I mean for example if you see here there is a green and there is a blue color used I don't know
+so generally uh whenever we use green that shows there is a growth and when we use red there is a degrowth both right
+there is no significance here about why blue is used or why green is used here
+why yellow is used here donut chart I hate donut chart when there are so many categories right so wrong usage of
+visuals when there are multiple categories or if you see on the top there are 10 KPI cards this is horrible
+I mean if you are a CEO and you open your dashboard you don't want to see hundreds of things going on you just
+want to see okay so my business grew by this person what was the reason if it is
+degrowing what are the categories contributing to that degrowth what are the stores where I need to focus on what
+are the categories I need to focus on if there is a pricing issue is there a customer churn issue all those kind of
+things right so I just want to go to the reasons I want to see why this is happening I don't want to see all these
+kind of information right so there are many issues if you go to product analysis Same story 10 KPI cards then uh
+this I mean there is no data label over here you can see and I mean this is good
+to start with but I am not a firm believer that AI can do all the things
+but what I'm going to do from now will make the changes that is very important
+right all right so in order to improve this PowerBI reporting using AI Step
+number one is not going to the cloud and providing hey connect to PowerBI project file or this create reports for me. No,
+Understand the Business Objective (Step 3)
+that is the worst start ever. The first step is to understand the business. So
+if I open my notepad and click on new. So if you
+start here as a PowerBI developer step number one what is the business objective?
+So if you connected with your CXO, CFO or uh CIO or any other stakeholder who
+is uh owner of this complete digital transformation understand from him what
+exactly is the requirement. So if you are a retail business so what are the
+main KPIs? So are you looking for there are 10 stores so what is the store
+growth? uh which store is degrowing and how to
+track and improve. So this can be one of the business objective right. So this
+can be objective. Second objective can be uh so what are the product
+pricing? So currently we are seeing the low profit margins.
+This is a the problem right. What are the solutions? How to see which SQS are
+doing well with good profit margin?
+So if we can understand that we can try to promote those SQS more so that we can
+improve our profit margin or we can understand which
+SQS are having good margin but sales is low
+then we can try promoting them as well
+even if there is low sale. So also which SKUs are having low margin but
+de good marketing budget. So we can reduce the marketing
+budget for those categories. Right? So these are the things that we need to
+understand. So now once we have this kind of context then we will create a prompt. So this is how I created one of
+the prompt. This is the redesign prompt as you can see over here. So what I'm saying is I want you to redesign PowerBI
+Prompt #2 (Step 4)
+retail analytics executive summary dashboard. I will attach the screenshot of my current dashboard where you don't
+need because it's already there. Act as a senior PowerBI dashboard designer. You have this logic. So it should help CEO
+or retail manager with these kind of questions. These are the KPI hierarchies and this these are the examples how it
+should look like. So you once you provide more context it will understand okay so this is how we should work on.
+So if I minimize this if I minimize my PowerBI file and if I go to claude now
+if I provide the context paste it and press enter. Let me reiterate
+only change executive summary page.
+All right. So it might take uh five more minutes or 10 more minutes that doesn't matter but the point is now you are
+refining what you want. You are not saying give me anything surprise me. No
+you are a PowerBI developer you are expert. You are the one who are driving this solution right? So you should have
+a basic picture and what I generally do is this is one step. So once you create
+the prompt what I do generally is I create a wireframe. So you can create wireframe in in various softwares. There
+are various softares available. I'll share the link as well or otherwise you can go straight away to your pen and
+paper just draw the design how it should look like what are the three or four KPIs what kind of charts you want to
+show how it should look like and how it can help the business to answer some of
+the questions so once you have that on your page so just take a photo of that attach that on your cloud chat and then
+it will understand the kind of you know reporting that you want otherwise it
+will give you plain old whatever it understands right and there won't be any
+difference between you or any other person because if you are doing the same thing like this same answer will be
+given to everyone and there will be less trust and people will understand this is clot generated or many other reasons to
+not go ahead with this kind of thing right so let's wait for the answer so once it uh redesign and give us the
+executive summary then we can compare how it should look like all right so if you see on the screen once I added the
+Claude Artifact - Wireframe (Step 5)
+prompt to redesign the executive summary board and it worked on the weaknesses.
+So it says there are 10 KPI cards and uh one visual weight so it will improve on
+that stuff and there are various other things the color so it should be green or red depending on the growth degrowth
+and various other gradients of color not randomly using any color anywhere donut
+cannot be ranked at glance so not using that all those things. So once it gave me uh all the instructions finally it
+created the wireframe. As you can see on the right hand side this is a mockup created by claude. So I really like it.
+I mean uh it's a good way to understand how it can look like. So for example if you see over here
+you can see various icons like growth, degrowth all those things for physical
+stores. Similarly for countries you can see growth degrowth for yearon-year percentage versus target. And if you see
+on the KPI cards you can see for each uh metric like sales or gross profit what
+is the sales for a particular filter and then uh is it a growth or degthrow
+versus last year and versus targets. So it is way better than what we already
+had. So if you go back to report this is our original summary and I don't like
+this right. So what we will do is now the claude is saying do you want me to
+go ahead and rebuild the live executed summary page in PowerBI to match this mockup. I will say yes rebuild this in
+PowerBI now. So once I do that, it will take time and rebuild and it will try to
+mimic what it has already shown and we will see what it has done and then we can fine-tune and improve on how the
+things are looking like. So we can improve on the filters and various commentary or uh you can see the
+navigation looks better over here as well. So we will see once it provides
+the solution. All right. So now the last stage where it is rebuilding the live executive summary it has done and now we
+can see that it has edited two files ran few commands and if you expand that you
+will see what are the things that it has done and you will see what kind of skills it will use. So you can
+understand you can see what are the JavaScript pages and all those things which have been edited. You can see all
+those things. So once you see you can see there are screenshots that it takes
+and verify if it is good or bad and all the things are there right. So let's go
+straight to powerbi and see how it looks like. So now you can see
+Claude Output #2
+first of all to start with the navigation looks better because we have provided the context that this is how it
+should look like. Now you can see there are just five KPI cards right. You
+can see the charts looks better. So you can see there are just 1 2 3 4 5
+you can say charts or bar charts or some kind of charts apart from KPI which is decent. It's not too much. You can see
+there are three filters. you you have the clear all slicer filter as well which is good. Now if you see here on
+the right hand side I can see the country-wise total sales
+for this year and what is the year-on-year percentage. So this is a much better iteration to what we already
+had. You can see over here it tried to mimic the wireframe from the claude. For example, if you change year to 2017 so
+it should change. So you can see here FYI 2017 currently it is all countries. So if you change to Australia so you
+will see here it should show you all Australia only Australia all channels because currently all is selected. So
+Manual Edits (Step 6)
+this is how you can see the commentary as well. Right now one interesting part
+is for example if you see on the bottom right this is the metrics. So currently
+country wise we have sales and we have y. So if you see if you expand you will
+see the y there is a growth as well as degrowth. So you can see there are some minus and there are some positives. So
+how to make it more uh interactive user friendly make it more uh data
+storytelling oriented. So for that we can introduce the story uh introduce
+conditional formatting. So for example, one easiest way is if you go to this field and go to drop-down, click on
+conditional formatting, go to font color, for example, if you want to change the font and from here you can change to the rules and you can add the
+rules. But generally I feel this is so bad interface. Plus if you want to use
+that conditional formatting in another visual, then you have to do it again, right? So my preference is to create a
+measure once for all and then you can add that in the format style. So let's create the measure. So for example, if I
+go to time intelligence, this is where I want to create. So the measure name can
+be as simple as y conditional formatting. And if
+uh the logic would be if y which is sales y percentage is greater than zero
+then it should be green else it should be red. Currently I'm keeping it very
+simple otherwise uh you can use the hex codes to make it more robust. And now if
+you go to Y conditional formatting click on font color select the rules sorry
+select the field value and over here y conditional formatting select that and
+click okay. So now you can see it gives you good storytelling because now you
+can see straight away there are two countries with negative growth. You can see Italy as well as Canada. Otherwise
+all other countries have grown in this particular time frame. And this is how you can modify what Claude has already
+given to you. So you can add the sales previous year as well to make it more
+attractive. So you can see over here now you have country Y sales sales previous year YI versus target as well. You can
+do conditional formatting for versus target as well. Right? So now you can test if the
+interactivity is working. So if you select Canada for example all other cards are changing. You can change the
+the way visuals interact. For example, right now there is no interactivity but so if you click on format from here
+click on edit interactions. So if you select this visual and let's say you want to change the way it interacts with
+this visual. So currently it is not filtering. Click on filter. So it will show you for that. Right? Similarly, you
+can select this visual and filter others as well depending on how you want to show to make it more uh interactive and
+more user focused because see you can put so many complexities but if user is
+not able to understand is not able to utilize these reports are useless. So you have to think the user and how they
+will use right. So that's how I would try to improve the visuals. Let me tell
+Claude Plugins & Skills
+you what are the skills and the plugins used in claude. So if you see I'll go to claude from here and uh click on
+customize and then over here in the customize
+section you will have scales connectors plugins. So if you click on plugins
+and uh you can see there is powerba authoring over here. So this is the plug-in which I installed and I'll share
+the link through which uh you can install PowerBI authoring skills and you will see over here these are the skills
+inside this PowerBI authoring. So once you enable this plug-in so you will automatically have all these skills by
+default. So whenever you type in comment so oops so for example if you comment
+here like this so it will give you all the list of the skills that you have
+right so it has plenty of skills so you can mention powerbi and then it will
+show you all the skills that you have for powerbi right so if you go back to customize and go to the plugins and go
+to the powerbi authoring skills so very important powerbi report authoring then report design, report planning, model
+authoring. So generally model authoring for example is used to understand u the
+kind of model it has. So understanding the star schema giving you better suggestions creating the uh
+relationships and also connecting to fabric service as well. So all those things uh then report design as the name
+suggest it is for designing and uh uh creating the tone theme and all those
+things visually appealing um reports. So this is one option one thing and then
+second is how to connect. So you need MCP server. So if you go to developer so
+if you go to developer and you will see this is the configuration which I have created for my powerbcp and for this
+I've already created a video and then you can see on the top right and uh you can uh set up for yourself as well. All
+right so in my next video I'll explain you how to create kpi cards in powerbi using ei as well as using the native
+method that we used to do prei era. So as you can see over here in the screen
+this is the KPI card and this is just one card and here you are seeing the revenue which is category wise and the
+best part is you can have the local currencies and not just have the US dollars. So you can have that in
+Australian dollars, US dollars, Indian rupees or great Britain or euros or any
+other currency that you have so that you can make it more interactive and more
