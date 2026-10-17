@@ -1,0 +1,18 @@
+# Power BI Desktop: personal settings and data cache (created if the PBIP is opened in Desktop)
+**/.pbi/localSettings.json
+**/.pbi/cache.abf
+
+# IDs of the published workspace/model, written by our publish script
+tools/.published.env
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Editor and OS clutter
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Temporary Excel lock files (created while the workbook is open)
+~$*.xlsx
