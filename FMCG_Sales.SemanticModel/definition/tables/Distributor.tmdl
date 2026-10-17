@@ -1,0 +1,34 @@
+/// Distributors and their location.
+table Distributor
+
+	column 'Distributor Code'
+		dataType: string
+		isKey
+		isHidden
+		summarizeBy: none
+		sourceColumn: Distributor Code
+
+	column Distributor
+		dataType: string
+		sourceColumn: Distributor
+
+	column State
+		dataType: string
+		dataCategory: StateOrProvince
+		sourceColumn: State
+
+	column City
+		dataType: string
+		dataCategory: City
+		sourceColumn: City
+
+	partition Distributor = m
+		mode: import
+		source =
+				let
+					// Rows are embedded as compressed JSON, so no external data source is needed
+					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("hdTJTsMwFAXQX4m6ZtEaKLCkVKJQhopBLFAXN9jCaVMHeVDVv8dOIC8oDl5Vsu/JU9wbv7+P5jM2Hk9GR6O5KGWRzQtjdZE7W2mTtcvt7/roR7C4YMPi2C/duY+tqvb9Ka/WQmcrDS6MpCDpE7+4hPpyOo2bHNnT+oFcFlDo65VTG+SdCMGpX71FER36hA2MlVBthtyZX7t3uxyR87yHhIaRVqNNkTwfkCwpL5pXEamJIdOqyTiqWEKFp17KneDIwfsDr93GU9sNkWXDlqVsqNCz89v/zawDZEJxbhSvdPRkuDyg05wmSDg0ZybUJ0qnXd8voRUstujGSE+HNUvrukQHkxzcZMiFCl1JoVSsfS/YFWX2AO4oRfRiiLIUZaFIiwMXOl6JF1HCv6FCN0Z6MqxZWteHWX3Ebq+lz5b43SdyXC+VW3+IffQmjM2af4RiZE+GLEvbUKhFtdeQqbFNimQo0wo2doPNCv+p/m6TCAWaSZdDCbNH5Ap75IWR+Jsifl5/VXt/DdjIwV4ag10nMVqvvwE=", BinaryEncoding.Base64), Compression.Deflate)),
+					#"Built Table" = Table.FromRows(#"Decoded Rows", {"Distributor Code", "Distributor", "State", "City"}),
+					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"Distributor Code", type text}, {"Distributor", type text}, {"State", type text}, {"City", type text}}, "en-US")
+				in
+					#"Set Column Types"

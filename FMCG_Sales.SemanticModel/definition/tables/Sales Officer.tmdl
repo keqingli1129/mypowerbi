@@ -1,0 +1,22 @@
+/// Sales officers (SO) and the ASM they report to.
+table 'Sales Officer'
+
+	column 'Sales Officer'
+		dataType: string
+		isKey
+		sourceColumn: Sales Officer
+
+	column ASM
+		dataType: string
+		sourceColumn: ASM
+
+	partition 'Sales Officer' = m
+		mode: import
+		source =
+				let
+					// Rows are embedded as compressed JSON, so no external data source is needed
+					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("dZHBboNADER/xeKcn0iVQwsiiqCKVEU5TIqVdQBvtOwi8fc1IPWQ0uvOePw8e7lk+863dObQI9tlFVoeHL05xJhdd6b2Eulgb31qnRmOMjhQkboWQWW1BMWNalaTS59sAHTAsGgWNJjTEto5voZGP+ez44DF8Y7wDMyRCqRglgPzEy3Vone3GHK568x0QuRuC7GQADWkHvP8KcgE+pg4rGJSdFQ7/ANfws1pOfQuzdb6EuofVMN5v33AESOzUoVZP8sDE1XcNNMingIGNJTbjGwDVBjlF/61vso7q9/o19/Z6wOdUMkurrvrpNLRFxqM23JYqsIt/W3m0/keg13+7W+v5Ncf", BinaryEncoding.Base64), Compression.Deflate)),
+					#"Built Table" = Table.FromRows(#"Decoded Rows", {"Sales Officer", "ASM"}),
+					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"Sales Officer", type text}, {"ASM", type text}}, "en-US")
+				in
+					#"Set Column Types"

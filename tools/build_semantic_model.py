@@ -1,0 +1,422 @@
+"""Build the FMCG_Sales semantic model (TMDL files) from the Excel workbook.
+
+The rows of every table are embedded in its Power Query (M) partition as
+deflate-compressed, base64-encoded JSON, so the published model can refresh in
+the Power BI Service without any data source credentials or gateway.
+
+Run from the project root:
+    uv run --no-project --with pandas --with openpyxl python -I tools/build_semantic_model.py
+"""
+
+import base64
+import json
+import sys
+import zlib
+from pathlib import Path
+
+import pandas as pd
+
+ROOT = Path(__file__).resolve().parent.parent
+XLSX = ROOT / "data" / "FMCG_Sales_Data_Suraj_Consumer.xlsx"
+MODEL_DIR = ROOT / "FMCG_Sales.SemanticModel"
+DEF_DIR = MODEL_DIR / "definition"
+
+# ---------------------------------------------------------------------------
+# 1. Read the workbook and shape each table (Step 2 design)
+# ---------------------------------------------------------------------------
+
+sheets = pd.read_excel(XLSX, sheet_name=None)
+primary = sheets["Primary_Sales"]
+secondary = sheets["Secondary_Sales"]
+targets = sheets["Targets"]
+coverage = sheets["Coverage_Productivity"]
+products = sheets["Product_Master"]
+distributors = sheets["Distributor_Master"]
+calendar = sheets["Calendar"]
+
+
+def month_start(month_text):
+    """Turn '2025-01' into the date 2025-01-01 so monthly facts can join the Date table."""
+    return pd.to_datetime(month_text + "-01")
+
+
+# Dimensions
+date_df = pd.DataFrame({
+    "Date": calendar["Date"],
+    "Year": calendar["Year"],
+    "Month Number": calendar["Month_No"],
+    "Year Month Number": calendar["Year"] * 100 + calendar["Month_No"],
+    "Month Name": calendar["Month_Name"],
+    "Month": calendar["Date"].dt.strftime("%b"),
+    "Quarter": "Q" + calendar["Quarter"].astype(str),
+    "Financial Year": calendar["FY"],
+})
+area_df = (distributors[["Zone", "RSM", "ASM"]].drop_duplicates()
+           .sort_values(["Zone", "RSM", "ASM"]).reset_index(drop=True))
+sales_officer_df = (distributors[["SO", "ASM"]].drop_duplicates()
+                    .rename(columns={"SO": "Sales Officer"})
+                    .sort_values("Sales Officer").reset_index(drop=True))
+distributor_df = distributors[["Distributor_Code", "Distributor_Name", "State", "City"]].rename(
+    columns={"Distributor_Code": "Distributor Code", "Distributor_Name": "Distributor"})
+category_df = pd.DataFrame({"Category": sorted(products["Category"].unique())})
+product_df = products[["SKU_Code", "Brand", "SKU", "Pack", "MRP", "UnitsPerCase", "PTR", "PTS"]].rename(
+    columns={"SKU_Code": "SKU Code", "UnitsPerCase": "Units Per Case"})
+
+# Facts: keep keys + numbers only (descriptive columns live in the dimensions)
+primary_df = pd.DataFrame({
+    "Date": primary["Date"],
+    "ASM": primary["ASM"],
+    "Sales Officer": primary["SO"],
+    "Category": primary["Category"],
+    "Distributor Code": primary["Distributor_Code"],
+    "SKU Code": primary["SKU_Code"],
+    "Units": primary["Units"],
+    "Gross Value": primary["Gross_Value"],
+    "Scheme Discount": primary["Scheme_Discount"].round(2),
+    "Net Primary Value": primary["Net_Primary_Value"].round(2),
+})
+secondary_df = pd.DataFrame({
+    "Date": secondary["Date"],
+    "ASM": secondary["ASM"],
+    "Sales Officer": secondary["SO"],
+    "Category": secondary["Category"],
+    "Distributor Code": secondary["Distributor_Code"],
+    "SKU Code": secondary["SKU_Code"],
+    "Channel": secondary["Channel"],
+    "Units Sold": secondary["Units_Sold"],
+    "Secondary Value": secondary["Secondary_Value"].round(2),
+})
+targets_df = pd.DataFrame({
+    "Date": month_start(targets["Month"]),
+    "ASM": targets["ASM"],
+    "Category": targets["Category"],
+    "Primary Target Value": targets["Primary_Target"],
+    "Secondary Target Value": targets["Secondary_Target"],
+})
+coverage_df = pd.DataFrame({
+    "Date": month_start(coverage["Month"]),
+    "ASM": coverage["ASM"],
+    "Sales Officer": coverage["SO"],
+    "Total Outlets": coverage["Total_Outlets"],
+    "Outlets Billed": coverage["Outlets_Billed"],
+    "Planned Calls": coverage["Planned_Calls"],
+    "Productive Calls": coverage["Productive_Calls"],
+    "Lines Per Bill": coverage["Avg_Lines_Per_Bill"],
+})
+
+# Safety checks: dimension keys are unique, and every fact key exists in its dimension
+dimensions = {"Date": (date_df, "Date"), "Area": (area_df, "ASM"),
+              "Sales Officer": (sales_officer_df, "Sales Officer"),
+              "Distributor": (distributor_df, "Distributor Code"),
+              "Category": (category_df, "Category"), "Product": (product_df, "SKU Code")}
+for name, (dim, key) in dimensions.items():
+    if dim[key].duplicated().any():
+        sys.exit(f"Duplicate key in {name}[{key}]")
+
+# (fact table, fact column, dimension) — this list is also the relationship list
+relationships = [
+    ("Primary Sales", "Date", "Date"), ("Secondary Sales", "Date", "Date"),
+    ("Targets", "Date", "Date"), ("Coverage", "Date", "Date"),
+    ("Primary Sales", "ASM", "Area"), ("Secondary Sales", "ASM", "Area"),
+    ("Targets", "ASM", "Area"), ("Coverage", "ASM", "Area"),
+    ("Primary Sales", "Category", "Category"), ("Secondary Sales", "Category", "Category"),
+    ("Targets", "Category", "Category"),
+    ("Primary Sales", "Sales Officer", "Sales Officer"), ("Secondary Sales", "Sales Officer", "Sales Officer"),
+    ("Coverage", "Sales Officer", "Sales Officer"),
+    ("Primary Sales", "Distributor Code", "Distributor"), ("Secondary Sales", "Distributor Code", "Distributor"),
+    ("Primary Sales", "SKU Code", "Product"), ("Secondary Sales", "SKU Code", "Product"),
+]
+facts = {"Primary Sales": primary_df, "Secondary Sales": secondary_df,
+         "Targets": targets_df, "Coverage": coverage_df}
+for fact, column, dim_name in relationships:
+    dim, key = dimensions[dim_name]
+    missing = set(facts[fact][column]) - set(dim[key])
+    if missing:
+        sys.exit(f"{fact}[{column}] has values missing from {dim_name}: {sorted(missing)[:5]}")
+
+# ---------------------------------------------------------------------------
+# 2. Measures (Step 3)
+# ---------------------------------------------------------------------------
+
+
+def time_intelligence(prefix):
+    """PY, YoY %, PM and MoM % measures for 'Primary' or 'Secondary' sales."""
+    base = f"{prefix} Sales"
+    return [
+        {"name": f"{base} PY", "folder": "Time Intelligence", "format": "₹#,##0",
+         "description": f"{base} for the same period last year. Blank unless one year is in context (data starts in Jan 2025).",
+         "dax": f"""
+IF (
+    HASONEVALUE ( 'Date'[Year] ),
+    CALCULATE ( [{base}], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
+)"""},
+        {"name": f"{prefix} YoY %", "folder": "Time Intelligence", "format": "+0.0%;-0.0%;0.0%",
+         "description": f"Growth of {base.lower()} vs the same period last year.",
+         "dax": f"""
+VAR PriorYear = [{base} PY]
+RETURN
+    IF ( NOT ISBLANK ( PriorYear ), DIVIDE ( [{base}] - PriorYear, PriorYear ) )"""},
+        {"name": f"{base} PM", "folder": "Time Intelligence", "format": "₹#,##0",
+         "description": f"{base} for the previous month.",
+         "dax": f"CALCULATE ( [{base}], DATEADD ( 'Date'[Date], -1, MONTH ) )"},
+        {"name": f"{prefix} MoM %", "folder": "Time Intelligence", "format": "+0.0%;-0.0%;0.0%",
+         "description": f"Growth of {base.lower()} vs the previous month.",
+         "dax": f"""
+VAR PriorMonth = [{base} PM]
+RETURN
+    IF ( NOT ISBLANK ( PriorMonth ), DIVIDE ( [{base}] - PriorMonth, PriorMonth ) )"""},
+    ]
+
+
+measures = {
+    "Primary Sales": [
+        {"name": "Primary Sales", "folder": "Core", "format": "₹#,##0",
+         "description": "Net value invoiced to distributors (sell-in), after scheme discount.",
+         "dax": "SUM ( 'Primary Sales'[Net Primary Value] )"},
+        {"name": "Primary Units", "folder": "Core", "format": "#,##0",
+         "description": "Units invoiced to distributors (sell-in).",
+         "dax": "SUM ( 'Primary Sales'[Units] )"},
+        {"name": "Scheme Spend %", "folder": "Trade Spend", "format": "0.0%",
+         "description": "Scheme (trade promotion) discount as a share of gross primary value.",
+         "dax": "DIVIDE ( SUM ( 'Primary Sales'[Scheme Discount] ), SUM ( 'Primary Sales'[Gross Value] ) )"},
+    ] + time_intelligence("Primary"),
+    "Secondary Sales": [
+        {"name": "Secondary Sales", "folder": "Core", "format": "₹#,##0",
+         "description": "Value sold by distributors to retailers (sell-out).",
+         "dax": "SUM ( 'Secondary Sales'[Secondary Value] )"},
+        {"name": "Secondary Units", "folder": "Core", "format": "#,##0",
+         "description": "Units sold by distributors to retailers (sell-out).",
+         "dax": "SUM ( 'Secondary Sales'[Units Sold] )"},
+        {"name": "Sell-Through %", "folder": "Pipeline", "format": "0.0%",
+         "description": "Secondary units ÷ primary units: how much of what was sold in actually moved to retailers.",
+         "dax": "DIVIDE ( [Secondary Units], [Primary Units] )"},
+        {"name": "Pipeline Stock Units", "folder": "Pipeline", "format": "#,##0",
+         "description": "Cumulative primary minus secondary units, from the start of the data to the last selected date.",
+         "dax": """
+VAR CutoffDate = MAX ( 'Date'[Date] )
+RETURN
+    CALCULATE (
+        [Primary Units] - [Secondary Units],
+        REMOVEFILTERS ( 'Date' ),
+        'Date'[Date] <= CutoffDate
+    )"""},
+        {"name": "Category Mix %", "folder": "Core", "format": "0.0%",
+         "description": "This category's share of secondary sales within the current filters.",
+         "dax": "DIVIDE ( [Secondary Sales], CALCULATE ( [Secondary Sales], REMOVEFILTERS ( Category ) ) )"},
+    ] + time_intelligence("Secondary"),
+    "Targets": [
+        {"name": "Primary Target", "folder": "Targets", "format": "₹#,##0",
+         "description": "Primary (sell-in) target, set per ASM × Category × Month.",
+         "dax": "SUM ( Targets[Primary Target Value] )"},
+        {"name": "Secondary Target", "folder": "Targets", "format": "₹#,##0",
+         "description": "Secondary (sell-out) target, set per ASM × Category × Month.",
+         "dax": "SUM ( Targets[Secondary Target Value] )"},
+        {"name": "Primary Achievement %", "folder": "Achievement", "format": "0.0%",
+         "description": "Primary sales ÷ primary target.",
+         "dax": "DIVIDE ( [Primary Sales], [Primary Target] )"},
+        {"name": "Secondary Achievement %", "folder": "Achievement", "format": "0.0%",
+         "description": "Secondary sales ÷ secondary target.",
+         "dax": "DIVIDE ( [Secondary Sales], [Secondary Target] )"},
+        {"name": "Primary Gap to Target", "folder": "Achievement", "format": "₹#,##0;-₹#,##0;₹0",
+         "description": "Primary sales minus primary target; negative means behind target.",
+         "dax": """
+VAR TargetValue = [Primary Target]
+RETURN
+    IF ( NOT ISBLANK ( TargetValue ), [Primary Sales] - TargetValue )"""},
+    ],
+    "Coverage": [
+        {"name": "Numeric Distribution %", "folder": "Coverage", "format": "0.0%",
+         "description": "Outlets billed ÷ total outlets: width of retail reach.",
+         "dax": "DIVIDE ( SUM ( Coverage[Outlets Billed] ), SUM ( Coverage[Total Outlets] ) )"},
+        {"name": "Productive Call %", "folder": "Coverage", "format": "0.0%",
+         "description": "Productive calls ÷ planned calls: salesman efficiency on the beat.",
+         "dax": "DIVIDE ( SUM ( Coverage[Productive Calls] ), SUM ( Coverage[Planned Calls] ) )"},
+        {"name": "Avg Lines per Bill", "folder": "Coverage", "format": "0.0",
+         "description": "Average SKUs per bill, weighted by outlets billed.",
+         "dax": """
+DIVIDE (
+    SUMX ( Coverage, Coverage[Lines Per Bill] * Coverage[Outlets Billed] ),
+    SUM ( Coverage[Outlets Billed] )
+)"""},
+    ],
+}
+
+# ---------------------------------------------------------------------------
+# 3. Columns per table: (name, data type, options)
+# ---------------------------------------------------------------------------
+
+HIDDEN = {"hidden": True}
+columns = {
+    "Date": [
+        ("Date", "dateTime", {"key": True, "format": "dd mmm yyyy"}),
+        ("Year", "int64", {"format": "0"}),
+        ("Month Number", "int64", HIDDEN),
+        ("Year Month Number", "int64", HIDDEN),
+        ("Month Name", "string", {"sort_by": "Year Month Number"}),
+        ("Month", "string", {"sort_by": "Month Number"}),
+        ("Quarter", "string", {}),
+        ("Financial Year", "string", {}),
+    ],
+    "Area": [("Zone", "string", {}), ("RSM", "string", {}), ("ASM", "string", {"key": True})],
+    "Sales Officer": [("Sales Officer", "string", {"key": True}), ("ASM", "string", {})],
+    "Distributor": [
+        ("Distributor Code", "string", {"key": True, "hidden": True}),
+        ("Distributor", "string", {}),
+        ("State", "string", {"category": "StateOrProvince"}),
+        ("City", "string", {"category": "City"}),
+    ],
+    "Category": [("Category", "string", {"key": True})],
+    "Product": [
+        ("SKU Code", "string", {"key": True, "hidden": True}),
+        ("Brand", "string", {}), ("SKU", "string", {}), ("Pack", "string", {}),
+        ("MRP", "decimal", {"format": "₹#,##0.00"}),
+        ("Units Per Case", "int64", {}),
+        ("PTR", "decimal", {"format": "₹#,##0.00"}),
+        ("PTS", "decimal", {"format": "₹#,##0.00"}),
+    ],
+    "Primary Sales": [(c, t, HIDDEN) for c, t in [
+        ("Date", "dateTime"), ("ASM", "string"), ("Sales Officer", "string"), ("Category", "string"),
+        ("Distributor Code", "string"), ("SKU Code", "string"), ("Units", "int64"),
+        ("Gross Value", "decimal"), ("Scheme Discount", "decimal"), ("Net Primary Value", "decimal")]],
+    "Secondary Sales": [(c, t, HIDDEN) for c, t in [
+        ("Date", "dateTime"), ("ASM", "string"), ("Sales Officer", "string"), ("Category", "string"),
+        ("Distributor Code", "string"), ("SKU Code", "string")]]
+        + [("Channel", "string", {})]
+        + [(c, t, HIDDEN) for c, t in [("Units Sold", "int64"), ("Secondary Value", "decimal")]],
+    "Targets": [(c, t, HIDDEN) for c, t in [
+        ("Date", "dateTime"), ("ASM", "string"), ("Category", "string"),
+        ("Primary Target Value", "int64"), ("Secondary Target Value", "int64")]],
+    "Coverage": [(c, t, HIDDEN) for c, t in [
+        ("Date", "dateTime"), ("ASM", "string"), ("Sales Officer", "string"),
+        ("Total Outlets", "int64"), ("Outlets Billed", "int64"), ("Planned Calls", "int64"),
+        ("Productive Calls", "int64"), ("Lines Per Bill", "decimal")]],
+}
+
+descriptions = {
+    "Date": "Calendar, one row per day from 1 Jan 2025 to 30 Jun 2026.",
+    "Area": "Sales areas at area sales manager (ASM) grain, with regional sales manager (RSM) and zone.",
+    "Sales Officer": "Sales officers (SO) and the ASM they report to.",
+    "Distributor": "Distributors and their location.",
+    "Category": "Product categories, shared by sales and targets.",
+    "Product": "Products at SKU grain with list prices (MRP, PTR = price to retailer, PTS = price to stockist).",
+    "Primary Sales": "Primary (sell-in) invoice lines from the company to distributors.",
+    "Secondary Sales": "Secondary (sell-out) sales from distributors to retailers, per distributor × SKU × channel × month.",
+    "Targets": "Monthly primary and secondary targets per ASM × Category (dated the first of the month).",
+    "Coverage": "Monthly outlet coverage and call productivity per sales officer × city (dated the first of the month).",
+}
+data = {"Date": date_df, "Area": area_df, "Sales Officer": sales_officer_df, "Distributor": distributor_df,
+        "Category": category_df, "Product": product_df, **facts}
+
+# ---------------------------------------------------------------------------
+# 4. Write TMDL
+# ---------------------------------------------------------------------------
+
+M_TYPES = {"string": "type text", "int64": "Int64.Type", "decimal": "Currency.Type", "dateTime": "type date"}
+
+
+def q(name):
+    """Quote a TMDL object name when it contains spaces or special characters."""
+    return f"'{name}'" if any(ch in name for ch in " .=:'-%&()") else name
+
+
+def embedded_rows(df, cols):
+    """M expression that rebuilds the table from compressed JSON embedded in the file."""
+    rows = []
+    for record in df[[c for c, _, _ in cols]].itertuples(index=False):
+        row = []
+        for value, (_, dtype, _) in zip(record, cols):
+            if dtype == "dateTime":
+                row.append(pd.Timestamp(value).strftime("%Y-%m-%d"))
+            elif dtype == "int64":
+                row.append(int(value))
+            elif dtype == "decimal":
+                row.append(float(value))
+            else:
+                row.append(str(value))
+        rows.append(row)
+    raw = json.dumps(rows, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    deflate = zlib.compressobj(9, zlib.DEFLATED, -15)  # raw deflate, as Power Query expects
+    payload = base64.b64encode(deflate.compress(raw) + deflate.flush()).decode("ascii")
+    names = ", ".join(f'"{c}"' for c, _, _ in cols)
+    types = ", ".join(f'{{"{c}", {M_TYPES[t]}}}' for c, t, _ in cols)
+    return [
+        "let",
+        "\t// Rows are embedded as compressed JSON, so no external data source is needed",
+        f'\t#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("{payload}", BinaryEncoding.Base64), Compression.Deflate)),',
+        f'\t#"Built Table" = Table.FromRows(#"Decoded Rows", {{{names}}}),',
+        f'\t#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{{types}}}, "en-US")',
+        "in",
+        '\t#"Set Column Types"',
+    ]
+
+
+def table_tmdl(name):
+    lines = [f"/// {descriptions[name]}", f"table {q(name)}"]
+    if name == "Date":
+        lines.append("\tdataCategory: Time")  # marks it as the date table (with isKey on Date)
+    lines.append("")
+    for m in measures.get(name, []):
+        lines.append(f"\t/// {m['description']}")
+        dax = m["dax"].strip()
+        if "\n" in dax:
+            lines.append(f"\tmeasure {q(m['name'])} = ```")
+            lines += [f"\t\t\t{line}" for line in dax.splitlines()]
+            lines.append("\t\t\t```")
+        else:
+            lines.append(f"\tmeasure {q(m['name'])} = {dax}")
+        lines += [f"\t\tformatString: {m['format']}", f"\t\tdisplayFolder: {m['folder']}", ""]
+    for col, dtype, opt in columns[name]:
+        lines += [f"\tcolumn {q(col)}", f"\t\tdataType: {dtype}"]
+        if opt.get("key"):
+            lines.append("\t\tisKey")
+        if opt.get("hidden"):
+            lines.append("\t\tisHidden")
+        if opt.get("format"):
+            lines.append(f"\t\tformatString: {opt['format']}")
+        if dtype != "string" or opt.get("hidden"):
+            lines.append("\t\tsummarizeBy: none")
+        if opt.get("category"):
+            lines.append(f"\t\tdataCategory: {opt['category']}")
+        if opt.get("sort_by"):
+            lines.append(f"\t\tsortByColumn: {q(opt['sort_by'])}")
+        lines += [f"\t\tsourceColumn: {col}", ""]
+    if name == "Area":
+        lines += ["\thierarchy 'Sales Hierarchy'", ""]
+        for level in ["Zone", "RSM", "ASM"]:
+            lines += [f"\t\tlevel {level}", f"\t\t\tcolumn: {level}", ""]
+    lines += [f"\tpartition {q(name)} = m", "\t\tmode: import", "\t\tsource ="]
+    lines += [f"\t\t\t\t{line}" for line in embedded_rows(data[name], columns[name])]
+    return "\n".join(lines) + "\n"
+
+
+(DEF_DIR / "tables").mkdir(parents=True, exist_ok=True)
+for old in (DEF_DIR / "tables").glob("*.tmdl"):
+    old.unlink()
+for name in data:
+    (DEF_DIR / "tables" / f"{name}.tmdl").write_text(table_tmdl(name), encoding="utf-8")
+    print(f"  {name:<16} {len(data[name]):>6} rows, {len(measures.get(name, []))} measures")
+
+rel_lines = []
+for fact, column, dim_name in relationships:
+    key = dimensions[dim_name][1]
+    rel_lines += [f"relationship '{fact} {column} to {dim_name}'",
+                  f"\tfromColumn: {q(fact)}.{q(column)}",
+                  f"\ttoColumn: {q(dim_name)}.{q(key)}", ""]
+(DEF_DIR / "relationships.tmdl").write_text("\n".join(rel_lines), encoding="utf-8")
+
+(DEF_DIR / "model.tmdl").write_text("\n".join(
+    ["model Model", "\tculture: en-US", "\tdefaultPowerBIDataSourceVersion: powerBI_V3",
+     "\tsourceQueryCulture: en-US", "\tdiscourageImplicitMeasures", ""]
+    + [f"ref table {q(name)}" for name in data]) + "\n", encoding="utf-8")
+
+(DEF_DIR / "database.tmdl").write_text(
+    "database FMCG_Sales\n\tcompatibilityLevel: 1702\n\tcompatibilityMode: powerBI\n", encoding="utf-8")
+
+(MODEL_DIR / "definition.pbism").write_text(json.dumps({
+    "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/semanticModel/definitionProperties/1.0.0/schema.json",
+    "version": "4.2",
+    "settings": {"qnaEnabled": True},
+}, indent=2) + "\n", encoding="utf-8")
+
+print(f"Wrote {len(data)} tables, {len(relationships)} relationships, "
+      f"{sum(len(v) for v in measures.values())} measures to {MODEL_DIR.name}/")

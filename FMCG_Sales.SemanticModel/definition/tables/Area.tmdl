@@ -1,0 +1,37 @@
+/// Sales areas at area sales manager (ASM) grain, with regional sales manager (RSM) and zone.
+table Area
+
+	column Zone
+		dataType: string
+		sourceColumn: Zone
+
+	column RSM
+		dataType: string
+		sourceColumn: RSM
+
+	column ASM
+		dataType: string
+		isKey
+		sourceColumn: ASM
+
+	hierarchy 'Sales Hierarchy'
+
+		level Zone
+			column: Zone
+
+		level RSM
+			column: RSM
+
+		level ASM
+			column: ASM
+
+	partition Area = m
+		mode: import
+		source =
+				let
+					// Rows are embedded as compressed JSON, so no external data source is needed
+					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("fc/BCoMwDAbgVwk9+xITxxhDkQruIB7+YVhj1Y62Hnz71T6At/7JR5oMg7ojRFWoij8IRoKhh3HBpErt9lUiqEJQY3EBO2wxvahkwx7ZNs7Hs9WL9VhJw6Vw22YsQjWbeKEq5h8sdbJ9TVad27PSWDn90kB8Sq2XA/Q82F+gXmYcpHmajqzenE9IC5/1FlGWFJt0DOi1LxZ+kwuoYc/hpUGMahz/", BinaryEncoding.Base64), Compression.Deflate)),
+					#"Built Table" = Table.FromRows(#"Decoded Rows", {"Zone", "RSM", "ASM"}),
+					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"Zone", type text}, {"RSM", type text}, {"ASM", type text}}, "en-US")
+				in
+					#"Set Column Types"

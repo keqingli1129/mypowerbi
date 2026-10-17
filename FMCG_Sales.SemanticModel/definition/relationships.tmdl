@@ -1,0 +1,71 @@
+relationship 'Primary Sales Date to Date'
+	fromColumn: 'Primary Sales'.Date
+	toColumn: Date.Date
+
+relationship 'Secondary Sales Date to Date'
+	fromColumn: 'Secondary Sales'.Date
+	toColumn: Date.Date
+
+relationship 'Targets Date to Date'
+	fromColumn: Targets.Date
+	toColumn: Date.Date
+
+relationship 'Coverage Date to Date'
+	fromColumn: Coverage.Date
+	toColumn: Date.Date
+
+relationship 'Primary Sales ASM to Area'
+	fromColumn: 'Primary Sales'.ASM
+	toColumn: Area.ASM
+
+relationship 'Secondary Sales ASM to Area'
+	fromColumn: 'Secondary Sales'.ASM
+	toColumn: Area.ASM
+
+relationship 'Targets ASM to Area'
+	fromColumn: Targets.ASM
+	toColumn: Area.ASM
+
+relationship 'Coverage ASM to Area'
+	fromColumn: Coverage.ASM
+	toColumn: Area.ASM
+
+relationship 'Primary Sales Category to Category'
+	fromColumn: 'Primary Sales'.Category
+	toColumn: Category.Category
+
+relationship 'Secondary Sales Category to Category'
+	fromColumn: 'Secondary Sales'.Category
+	toColumn: Category.Category
+
+relationship 'Targets Category to Category'
+	fromColumn: Targets.Category
+	toColumn: Category.Category
+
+relationship 'Primary Sales Sales Officer to Sales Officer'
+	fromColumn: 'Primary Sales'.'Sales Officer'
+	toColumn: 'Sales Officer'.'Sales Officer'
+
+relationship 'Secondary Sales Sales Officer to Sales Officer'
+	fromColumn: 'Secondary Sales'.'Sales Officer'
+	toColumn: 'Sales Officer'.'Sales Officer'
+
+relationship 'Coverage Sales Officer to Sales Officer'
+	fromColumn: Coverage.'Sales Officer'
+	toColumn: 'Sales Officer'.'Sales Officer'
+
+relationship 'Primary Sales Distributor Code to Distributor'
+	fromColumn: 'Primary Sales'.'Distributor Code'
+	toColumn: Distributor.'Distributor Code'
+
+relationship 'Secondary Sales Distributor Code to Distributor'
+	fromColumn: 'Secondary Sales'.'Distributor Code'
+	toColumn: Distributor.'Distributor Code'
+
+relationship 'Primary Sales SKU Code to Product'
+	fromColumn: 'Primary Sales'.'SKU Code'
+	toColumn: Product.'SKU Code'
+
+relationship 'Secondary Sales SKU Code to Product'
+	fromColumn: 'Secondary Sales'.'SKU Code'
+	toColumn: Product.'SKU Code'
