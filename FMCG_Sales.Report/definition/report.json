@@ -51,5 +51,20 @@
     "allowChangeFilterTypes": true,
     "useEnhancedTooltips": true,
     "useDefaultAggregateDisplayName": true
+  },
+  "objects": {
+    "outspacePane": [
+      {
+        "properties": {
+          "expanded": {
+            "expr": {
+              "Literal": {
+                "Value": "false"
+              }
+            }
+          }
+        }
+      }
+    ]
   }
 }

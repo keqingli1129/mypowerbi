@@ -6,7 +6,7 @@
     "y": 680,
     "z": 4000,
     "width": 1100,
-    "height": 368,
+    "height": 336,
     "tabOrder": 3200
   },
   "visual": {
@@ -171,7 +171,7 @@
             "data": [
               {
                 "dataViewWildcard": {
-                  "matchingOption": 1
+                  "matchingOption": 0
                 }
               }
             ],
@@ -201,7 +201,7 @@
             "data": [
               {
                 "dataViewWildcard": {
-                  "matchingOption": 1
+                  "matchingOption": 0
                 }
               }
             ],

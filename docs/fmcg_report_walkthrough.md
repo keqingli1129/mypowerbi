@@ -1,271 +1,167 @@
-# FMCG Sales Report: Step-by-Step Walkthrough (Linux + Power BI Service)
+# FMCG Sales Report: Walkthrough of What We Built
 
-**Goal:** turn `data/FMCG_Sales_Data_Suraj_Consumer.xlsx` into a multi-page Power BI report for **sales leadership**, built entirely by Claude as a PBIP project on this Linux machine, then published to **My workspace** in the browser.
+How the **FMCG Sales Executive Summary** was built from an Excel file, entirely from a Linux
+machine (no Power BI Desktop), as a PBIP project in Git, published to **My workspace** in the
+Power BI Service. Step status and commit IDs are in [roadmap.md](roadmap.md).
 
-**How this differs from the video** (`docs/powerbi_claudecode_walkthrough.md`):
+## The result
 
-| Video setup | This setup |
-|---|---|
-| Power BI Desktop on Windows, report saved as .pbip | **No Desktop** (Linux). Claude writes the PBIP files directly |
-| Bridge preview feature → Claude screenshots pages | **No screenshot loop.** Claude validates the files; **you** review the result in the browser |
-| Data loaded from a source in Desktop | **Data embedded in the model** (a static snapshot, no gateway or credentials) |
-| Publish from Desktop | Publish through the **Fabric REST API** (`az rest`) |
+One page, 1920 × 1080, for sales leadership: **"Are we on target and growing?"**
 
-Status key: ✅ done · ⏳ next · 🔲 later
-
----
-
-## Phase 0: Prerequisites ✅
-
-| Item | Status |
-|---|---|
-| Power BI account at app.powerbi.com | ✅ (signed in, My workspace open) |
-| Claude Code + **Power BI Authoring plugin** (planning, design, authoring, management skills) | ✅ |
-| Azure CLI (`az`) signed in to your account, used for publishing | ✅ `az account show` works |
-| Python via `uv` (to read the Excel file) | ✅ |
-| Power BI Desktop | ❌ Not available on Linux. Visual checks happen in the browser instead |
-
----
-
-## Phase 1: Put the data in the project ✅
-
-### Step 1. Create the folder layout
 ```
-mypowerbi/
-├── data/FMCG_Sales_Data_Suraj_Consumer.xlsx   ← you copied this in
-├── docs/                                       ← walkthroughs
-├── _brief/report-spec.md                       ← (Phase 4) the approved plan
-├── FMCG_Sales.pbip                             ← (Phase 5) project entry file
-├── FMCG_Sales.SemanticModel/                   ← (Phase 5) TMDL model
-└── FMCG_Sales.Report/                          ← (Phase 6) PBIR pages/visuals
+┌────────────────────────────────────────────────────────────────────────────────────┐
+│ Are we on target and growing?                       [Year 2026▾] [Zone▾] [Category▾] │
+├───────────────┬───────────────┬───────────────┬───────────────┬────────────────────┤
+│ SELL-IN       │ SELL-OUT      │ % OF TARGET   │ SELL-THROUGH  │ DISTRIBUTOR STOCK  │
+│ ₹124M         │ ₹139M         │ 97.2%         │ 95.3%         │ 660K               │
+│ ▲ 9.4% vs LY  │ ▲ 9.3% vs LY  │ ▼ ₹3.5M below │ 4.7% still w/ │ ▲ 214,561 added    │
+├───────────────┴───────────────┴──────┬────────┴───────────────┴────────────────────┤
+│ Monthly sell-in vs sell-out vs target│ Gap to primary target by ASM (worst first)   │
+├──────────────────────────────────────┼─────────────────────────────────────────────┤
+│ Scorecard by zone ▸ ASM               │ Sell-in growth by category (2026 vs 2025)   │
+├──────────────────────────────────────┴─────────────────────────────────────────────┤
+│ Source: … (footer)                                                                  │
+└────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Step 2. Decide where the data lives ✅
-You can't use "Save as PBIP" in the browser, and the Service **can't read a file on this laptop**. A published model is only a definition. The Service loads the data by refreshing from the source. Options considered:
+The story it tells for 2026: sell-in grew 9.4% but is slightly behind target in every zone;
+North grows fastest yet is furthest behind; Beverages is the only shrinking category; about 5%
+of units sold to distributors don't move on to retailers, so distributor stock keeps growing.
 
-| Option | Chosen? |
+## How the pieces fit
+
+```
+data/*.xlsx ──► tools/build_semantic_model.py ──► FMCG_Sales.SemanticModel/ (TMDL, data embedded)
+                                                         │ tools/publish_model.py (Fabric API + refresh)
+                                                         ▼
+                                              Service: FMCG_Sales semantic model ◄── tools/check_measures.py
+                                                         ▲   (report refers to measures by name)
+tools/theme/ + tools/build_report.py ──► FMCG_Sales.Report/ (PBIR) ── tools/publish_report.py
+                                                                       (byConnection to the model)
+```
+
+| Part | What it is |
 |---|---|
-| Upload the .xlsx to OneDrive/SharePoint; the Service refreshes from it | No |
-| **Embed the rows inside the model** (Power Query "Enter data" style) | ✅ **Yes** |
-| Fabric Lakehouse + Direct Lake (needs a Fabric capacity workspace) | No |
+| **Semantic model** | Tables, relationships and DAX measures (the formulas). Lives in the model, not the report. |
+| **Report** | Pages and visuals. Each visual only **refers** to measures by name. |
+| **PBIP project** | `FMCG_Sales.pbip` + `FMCG_Sales.SemanticModel/` + `FMCG_Sales.Report/`, all plain text, so Git can diff it. On Windows, double-click the `.pbip` to open it in Desktop. |
 
-**Result:** the report works right after publishing, with no credentials to set up. **Trade-off:** it's a snapshot. If the Excel file changes, ask Claude to re-embed the data and republish.
+## Prerequisites
 
----
-
-## Phase 2: Profile the data ✅
-
-### Step 3. Read every sheet
-Claude read the workbook with pandas. It has 8 sheets:
-
-| Sheet | Rows | Grain | Becomes |
-|---|---|---|---|
-| Primary_Sales | 5,258 | 1 invoice line (company → distributor), daily | **Fact: Primary Sales** |
-| Secondary_Sales | 12,637 | distributor × SKU × channel × month (dated the 15th) | **Fact: Secondary Sales** |
-| Targets | 575 | ASM × Category × Month | **Fact: Targets** |
-| Coverage_Productivity | 360 | SO × City × Month | **Fact: Coverage** |
-| Product_Master | 18 | SKU | **Dim: Product** |
-| Distributor_Master | 28 | Distributor | **Dim: Distributor** |
-| Calendar | 546 | Day (1 Jan 2025 – 30 Jun 2026) | **Dim: Date** |
-| READ_ME_KPIs | 12 | KPI definitions | Spec for the DAX measures |
-
-### Step 4. Check that the data is consistent ✅
-| Check | Result |
+| Tool | Used for |
 |---|---|
-| Sales hierarchy is strictly nested: **Zone → RSM → ASM → SO → Distributor** | ✅ every child has exactly one parent |
-| Fact rows match the master tables (ASM, Category) | ✅ |
-| Every SO and city in Coverage exists in Distributor_Master | ✅ |
-| Duplicate keys in Targets / Coverage | ✅ none |
-| Date coverage | Jan 2025 – Jun 2026 (18 months). **YoY is only meaningful for Jan–Jun 2026 vs Jan–Jun 2025** |
+| `uv` (Python) | Running the scripts that read Excel (`pandas`, `openpyxl`) |
+| Azure CLI `az`, signed in (`az login`) | API tokens for publishing and DAX queries |
+| `powerbi-report-author` (`npm install -g @microsoft/powerbi-report-authoring-cli`) | Scaffolding and validating PBIR |
+| Power BI account with My workspace | Where the model and report live |
 
-Headline totals for later checks: **Primary (net) ≈ ₹358.7M**, **Secondary ≈ ₹404.3M**.
+## Step by step
 
----
+### 1–3. Understand the data, design the model, write the measures
 
-## Phase 3: Gather requirements (planning skill) ⏳
+- 8 sheets: 4 **facts** (Primary_Sales, Secondary_Sales, Targets, Coverage_Productivity),
+  3 **dimensions** (Product, Distributor, Calendar), 1 KPI definition sheet.
+- Sales team hierarchy: **Zone → RSM → ASM → SO → Distributor** (ASM = area sales manager).
+- **Star schema with different grains**: targets exist only per **ASM × Category × Month**, so
+  Area (ASM grain) and Category are separate dimensions connected directly to every fact.
+  Filtering by distributor, product, sales officer or channel does **not** filter targets.
+- **Date** is marked as the date table (`dataCategory: Time` + `isKey`), so
+  `SAMEPERIODLASTYEAR` works.
+- Measures follow the READ_ME KPIs: sales, sell-through %, achievement %, YoY/MoM, cumulative
+  pipeline stock, coverage. YoY returns blank unless one year is selected, because the data only
+  starts in Jan 2025.
 
-The `powerbi-report-planning` skill asks one question at a time, then locks a spec.
+### 4. Build the model files
 
-| Round | Question | Answer |
+```bash
+uv run --no-project --with pandas --with openpyxl python -I tools/build_semantic_model.py
+```
+
+Writes TMDL to `FMCG_Sales.SemanticModel/`. Each table file has measures, columns, and a
+**partition**: the M recipe that produces the rows. Here the rows are **embedded** as compressed
+JSON, so the Service needs no credentials or gateway. The script stops if any fact key is missing
+from its dimension.
+
+### 4b. PBIP skeleton
+
+`powerbi-report-author scaffold` created `FMCG_Sales.pbip` and `FMCG_Sales.Report/`, linked to the
+model with `byPath` (`../FMCG_Sales.SemanticModel`).
+
+### 5. Publish the model
+
+```bash
+python3 -I tools/publish_model.py
+```
+
+Creates (first run) or updates the model in My workspace via the Fabric API, then refreshes it.
+IDs are saved to `tools/.published.env` (git-ignored).
+
+### 6. Check the numbers
+
+```bash
+uv run --no-project --with pandas --with openpyxl python -I tools/check_measures.py
+```
+
+36 checks: DAX results from the published model vs values computed independently from the Excel
+file (totals, YoY, by zone, category mix, cumulative stock, helper texts and colors).
+
+### 7. Plan the page
+
+One page first, sales leadership, 1920 × 1080, clean corporate look. Rules: at most 5 KPIs, each
+with a comparison; color only with meaning; question as the title; detail behind a click.
+
+### 8. Build the page (`tools/build_report.py`)
+
+```bash
+python3 -I tools/build_report.py
+powerbi-report-author validate FMCG_Sales.Report
+python3 -I tools/publish_report.py
+```
+
+| Sub-step | Built | Technique |
 |---|---|---|
-| 0 | Data source / delivery | ✅ Embedded data → My workspace |
-| 1 | Audience | ✅ **Sales leadership** (national/zonal heads) |
-| 3 | Report shape (pages) | ⏳ **Your approval needed.** Draft below |
-| 4 | Look and feel (tone + signature visual) | 🔲 |
+| 8a | Helper measures: context text ("▲ 9.4% vs last year") and color codes (`#1A7F37` / `#C62828`) | Measures that return text or a hex color |
+| 8b | Theme, 1920×1080 grey page, title, Year/Zone/Category slicers | Custom theme registered in `report.json`; Year = strict single select, sorted newest first |
+| 8c | 5 KPI tiles | Value card + context card + 4 px accent bar (`shape`) per tile |
+| 8d | Monthly trend + gap by ASM | Per-series color and dash (`metadata` selector); bar color from `[Achievement Color]` |
+| 8e | Scorecard matrix + growth by category | Conditional font color in a matrix (`values.fontColor`), ₹M display units (`columnFormatting`) |
 
-### Step 5. Draft page plan (to approve or change)
-Follows the "Executive + Drill" pattern: start on a KPI landing page, then drill into the causes.
+Visual IDs are derived from readable keys (e.g. `exec.kpi.sellin.value`), so re-running the
+script produces identical files and Git diffs show only real changes.
 
-| # | Page | Answers | Main visuals |
-|---|---|---|---|
-| 1 | **Executive Summary** | Are we on target for sell-in and sell-out? Growing vs last year? | 4–5 KPI cards with vs-target and YoY; Primary vs Secondary vs Target monthly trend; achievement by Zone |
-| 2 | **Zone & Team Performance** | Which zones/ASMs are behind target, and by how much? | ASM ranking bar (achievement %), Zone → RSM → ASM matrix with red/green formatting |
-| 3 | **Product & Channel** | Which categories/brands/SKUs and channels drive growth? Where is scheme spend high but sales low? | Category/brand mix bars, channel split, SKU scatter (sales vs scheme spend %) |
-| 4 | **Distributor Health & Coverage** | Is stock piling up at distributors? Are salesmen covering outlets? | Pipeline stock trend, distributor table (sell-through %), numeric distribution %, productive call %, lines per bill by SO |
+### 9. Final review
 
-Global slicers: **Financial Year / Month, Zone, Category** (Channel only on page 3).
+Checked against the design rules; colored the total row, added the source footer, filter pane
+collapsed by default. Not shared (My workspace is private to its owner).
 
----
+## How to make changes later
 
-## Phase 4: Lock the spec 🔲
-
-### Step 6. Claude writes `_brief/report-spec.md`
-- A readable summary (audience, pages, measures, design) for you to approve
-- A **Design Brief YAML** block from the design skill. It gives exact page size (1920×1080), grid regions, visual placements and color rules, and is the contract the authoring step builds from
-
-### Step 7. You approve it
-Nothing gets built until you reply "Approve". You can also ask for changes to the audience, pages or design first.
-
----
-
-## Phase 5: Build the semantic model (TMDL on disk) 🔲
-
-### Step 8. Model design (star schema with a sales-team chain)
-```
-              Category ──────────────┐
-                 │                   ▼
-                 ▼                Targets ◄── ASM (Zone, RSM)
-Date ──►  Product ──► Primary Sales ◄── Distributor ◄── SO ◄── ASM
-  │            └────► Secondary Sales ◄──┘                │
-  └──► (all 4 facts)                    Coverage ◄────────┘
-```
-- All relationships are one-to-many and filter from the dimension to the fact, single direction.
-- Facts keep only keys and numbers. Names, zones and categories live in the dimension tables. This keeps the embedded data small and makes slicers filter every fact consistently.
-- Targets/Coverage use a **month-start date** to join to Date. Secondary rows (dated the 15th) join directly.
-- **Limit:** a City slicer filters sales but **not** Targets (those are set at ASM level). This is called out in the spec.
-
-### Step 9. Embed the data
-Each table's Power Query (M) partition holds its rows as compressed, base64-encoded JSON (the same mechanism as Desktop's "Enter data"). There's no external data source.
-
-### Step 10. Measures (from the READ_ME_KPIs sheet)
-Grouped into display folders:
-
-```dax
--- Core
-Primary Sales      = SUM ( 'Primary Sales'[Net_Primary_Value] )
-Secondary Sales    = SUM ( 'Secondary Sales'[Secondary_Value] )
-Primary Units      = SUM ( 'Primary Sales'[Units] )
-Secondary Units    = SUM ( 'Secondary Sales'[Units_Sold] )
-Sell-Through %     = DIVIDE ( [Secondary Units], [Primary Units] )
-
--- Targets
-Primary Target         = SUM ( Targets[Primary_Target] )
-Secondary Target       = SUM ( Targets[Secondary_Target] )
-Primary Achievement %  = DIVIDE ( [Primary Sales], [Primary Target] )
-Secondary Achievement %= DIVIDE ( [Secondary Sales], [Secondary Target] )
-
--- Time intelligence
-Primary Sales PY = CALCULATE ( [Primary Sales], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
-Primary YoY %    = DIVIDE ( [Primary Sales] - [Primary Sales PY], [Primary Sales PY] )
-Primary Sales PM = CALCULATE ( [Primary Sales], DATEADD ( 'Date'[Date], -1, MONTH ) )
-Primary MoM %    = DIVIDE ( [Primary Sales] - [Primary Sales PM], [Primary Sales PM] )
--- (same pattern for Secondary)
-
--- Distributor pipeline
-Pipeline Stock Units =
-    CALCULATE ( [Primary Units] - [Secondary Units],
-                FILTER ( ALL ( 'Date' ), 'Date'[Date] <= MAX ( 'Date'[Date] ) ) )
-
--- Coverage & productivity
-Numeric Distribution % = DIVIDE ( SUM ( Coverage[Outlets_Billed] ), SUM ( Coverage[Total_Outlets] ) )
-Productive Call %      = DIVIDE ( SUM ( Coverage[Productive_Calls] ), SUM ( Coverage[Planned_Calls] ) )
-Avg Lines per Bill     = DIVIDE ( SUMX ( Coverage, Coverage[Avg_Lines_Per_Bill] * Coverage[Outlets_Billed] ),
-                                  SUM ( Coverage[Outlets_Billed] ) )   -- weighted, not a plain average
-
--- Trade spend & mix
-Scheme Spend %   = DIVIDE ( SUM ( 'Primary Sales'[Scheme_Discount] ), SUM ( 'Primary Sales'[Gross_Value] ) )
-Category Mix %   = DIVIDE ( [Secondary Sales], CALCULATE ( [Secondary Sales], ALL ( Category ), ALL ( Product ) ) )
-
--- Formatting helpers (the video's "measure once, reuse everywhere" trick)
-Achievement Color = IF ( [Primary Achievement %] >= 1, "#1A7F37", "#C62828" )
-YoY Color         = IF ( [Primary YoY %] >= 0,        "#1A7F37", "#C62828" )
-```
-
-### Step 11. Check the measures against pandas
-With no Desktop to run DAX in, Claude checks the numbers in pandas: totals by month, zone and category for Primary, Secondary, Target and Sell-Through %. You can compare the same figures with the report in Phase 8.
-
----
-
-## Phase 6: Build the report (PBIR) 🔲
-
-### Step 12. Create the pages from the Design Brief
-Using the `powerbi-report-authoring` skill:
-- Page size 1920×1080. Title on the left of the header band, slicers top-right, visuals below, with no overlaps.
-- Custom theme based on the plugin's base theme. **Green means on target or growing, red means behind.** Colors are never decorative.
-- Readable names on every axis, legend and column (no `Sum of Net_Primary_Value`), percentages formatted as %, and alt text on every chart.
-- A navigation bar on every page.
-
-### Step 13. Validate the files
-- Validate the PBIR against its schemas, fix any errors, and run validation again until there are 0 errors.
-- Check that all JSON parses and that `definition.pbir` points to the semantic model.
-- Count pages and visuals against the spec.
-
-> In the video, Desktop screenshots caught layout bugs here. On Linux that step moves to **Phase 8 (you, in the browser)**.
-
----
-
-## Phase 7: Publish to My workspace 🔲
-
-Claude does this with the `powerbi-report-management` skill and `az rest`:
-
-### Step 14. Find the workspace
-`GET https://api.fabric.microsoft.com/v1/workspaces` → pick the one with `type: Personal` (My workspace).
-
-### Step 15. Create the semantic model
-`POST /v1/workspaces/{id}/semanticModels` with every TMDL file as a base64 definition part. Poll the long-running operation until it reports `Succeeded`.
-
-### Step 16. Load the data (refresh)
-Trigger one refresh through the Power BI REST API. Because the data is embedded, **no credentials or gateway are needed**. Wait for it to finish with status `Completed`.
-
-### Step 17. Create the report
-`POST /v1/workspaces/{id}/reports` with all PBIR parts. Its `definition.pbir` points to the new semantic model **by ID** (`byConnection`).
-
-> **Risk:** some tenants limit creating items through the API in **My workspace**. If that happens, the fallback is to create a regular workspace (needs a Pro or Fabric license) and publish there. Claude will ask you before doing that.
-
----
-
-## Phase 8: Review in the browser (you) 🔲
-
-### Step 18. Open it
-1. Go to app.powerbi.com → **My workspace**.
-2. You should see **FMCG_Sales** (semantic model) and **FMCG_Sales** (report).
-3. Open the semantic model and check **Refresh history**. The single refresh should show **Completed**.
-
-### Step 19. Check the numbers
-| Check | Expected |
+| Change | Do this |
 |---|---|
-| Primary Sales, all periods | ≈ ₹358.7M |
-| Secondary Sales, all periods | ≈ ₹404.3M |
-| Primary Sales Jan 2025 | ≈ ₹16.2M |
-| Primary YoY % with FY/Year = 2026 | Compares Jan–Jun 2026 with Jan–Jun 2025 only |
+| Excel data updated | Re-run `build_semantic_model.py` → `publish_model.py` → `check_measures.py` |
+| New or changed measure | Edit `measures` in `build_semantic_model.py` → regenerate → publish model → add a check |
+| Visual, layout or theme | Edit `build_report.py` or `tools/theme/CleanCorporate.json` → `build_report.py` → validate → `publish_report.py` |
+| See your change | Reopen the report (Ctrl+F5); click **Reset to default** to drop your remembered slicer choices |
 
-### Step 20. Check the layout and interactions
-- Click through every page with the nav buttons.
-- Change each slicer and confirm the cards and charts update.
-- Click a bar (e.g., a Zone) and confirm the other visuals cross-filter.
-- Look for clipped text, overlapping visuals, unreadable labels and wrong colors.
+## Lessons learned
 
-### Step 21. Send feedback
-Tell Claude what to change, or take a screenshot and attach it. Claude edits the local PBIP and republishes (an update, not a new copy). You can also edit directly in the browser (**Edit** on the report). If you do, tell Claude so it can download the latest definition before making further changes.
+- **The validator checks structure, not rendering.** A hand-written slicer default selection
+  validated but made the report hang at "Loading report". It was found by bisection: an empty
+  page loaded, the page without the Year slicer loaded, and adding its settings one at a time
+  pointed to the default filter. Test new kinds of settings one at a time in the Service.
+- **Display units are numbers** (`"1000000D"`). The text `"'1000000'"` validates but is ignored.
+- **The Service remembers each viewer's slicer and filter choices.** Use **Reset to default**
+  after republishing.
+- **Fonts:** use font lists (`'Segoe UI', …, helvetica, arial, sans-serif`). Plain "Segoe UI"
+  falls back to a serif font on Linux and Mac.
+- **My workspace limits:** Power BI API paths are `/myorg/datasets/…` (no `/groups/{id}`);
+  Fabric Git integration and the CLI's service preview don't work there; `.pbix` download
+  returned 403 for this API-created model.
+- **Model-view layout** arranged in the browser (Editing mode only; Viewing mode doesn't save)
+  stays in the Service and survived model republishing, but the API doesn't export it.
 
----
+## Next: Step 10, Databricks as the data source
 
-## Phase 9: Later 🔲
-- **Refreshable data:** move the .xlsx to OneDrive/SharePoint and switch the partitions to read from it.
-- **Desktop round-trip:** copy the PBIP folder to a Windows PC and open `FMCG_Sales.pbip` in Desktop to unlock the screenshot loop from the video.
-- **Share:** move to a shared workspace (My workspace is private to you).
-
----
-
-## Checklist
-- [x] Excel file in `data/`
-- [x] Data location chosen (embedded)
-- [x] Data profiled, hierarchy and grain checked
-- [x] Audience: sales leadership
-- [ ] Page plan approved
-- [ ] Look and feel chosen
-- [ ] `_brief/report-spec.md` approved
-- [ ] TMDL model + measures written, numbers checked in pandas
-- [ ] PBIR report written, 0 validation errors
-- [ ] Published: semantic model ✓, refresh Completed ✓, report ✓
-- [ ] Reviewed in browser, feedback applied
+Only each table's **partition** changes, from embedded JSON to the Databricks connector, as long
+as the column names stay the same. Measures, relationships and the report don't change. See the
+outline in [roadmap.md](roadmap.md).

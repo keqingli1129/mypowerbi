@@ -105,6 +105,8 @@ def textbox(key, x, y, w, h, paragraphs):
         "visual": {
             "visualType": "textbox",
             "objects": {"general": [{"properties": {"paragraphs": paragraphs}}]},
+            # zero padding on the visual itself, so short text boxes (footer) don't get a scrollbar
+            "visualContainerObjects": {"padding": padding(0, 0, 0, 0)},
         },
     }
 
@@ -287,7 +289,8 @@ def scorecard_matrix(key, x, y, w, h, rows, values, title, alt_text):
         if color_measure:
             value_entries.append({
                 "properties": {"fontColor": {"solid": {"color": {"expr": color_measure}}}},
-                "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": ref},
+                # matchingOption 0 = data rows AND totals (so the total row is colored too)
+                "selector": {"data": [{"dataViewWildcard": {"matchingOption": 0}}], "metadata": ref},
             })
         if millions:
             column_entries.append({**props(labelDisplayUnits=MILLIONS, labelPrecision=1),
@@ -365,9 +368,9 @@ exec_visuals += [
                      "Bar chart of each area sales manager's gap to primary target, red when behind"),
 ]
 
-# Bottom row (y 680-1048): scorecard on the left, growth by category on the right
+# Bottom row (y 680-1016): scorecard on the left, growth by category on the right
 exec_visuals += [
-    scorecard_matrix("exec.scorecard", MARGIN, 680, 1100, 368, [column("Area", "Zone"), column("Area", "ASM")], [
+    scorecard_matrix("exec.scorecard", MARGIN, 680, 1100, 336, [column("Area", "Zone"), column("Area", "ASM")], [
         (measure("Primary Sales", "Primary Sales"), "Sell-in", None, True),
         (measure("Targets", "Primary Target"), "Target", None, True),
         (measure("Targets", "Primary Achievement %"), "% of target", measure("Targets", "Achievement Color"), False),
@@ -375,12 +378,18 @@ exec_visuals += [
         (measure("Secondary Sales", "Sell-Through %"), "Sell-through", None, False),
     ], "Scorecard by zone and ASM (click + to expand)",
         "Matrix of sell-in, target, percent of target, year-over-year growth and sell-through by zone and ASM"),
-    ranked_bar_chart("exec.growth_by_category", 1156, 680, 732, 368, column("Category", "Category"),
+    ranked_bar_chart("exec.growth_by_category", 1156, 680, 732, 336, column("Category", "Category"),
                      measure("Primary Sales", "Primary YoY %"), "Sell-in growth",
                      measure("Primary Sales", "Primary YoY Color"),
                      "Sell-in growth by category (2026 vs 2025)",
                      "Bar chart of year-over-year sell-in growth by product category, green when growing",
                      direction="Descending", label_units=None),
+    # Footer: where the numbers come from (static text; a live "last refreshed" date comes with Step 10)
+    textbox("exec.footer", MARGIN, 1028, 1856, 24, [
+        text_run("Source: FMCG_Sales_Data_Suraj_Consumer.xlsx (snapshot embedded in the model) · "
+                 "Data Jan 2025 – Jun 2026 · Values in Indian rupees (₹) · Sell-in = primary sales to "
+                 "distributors, sell-out = secondary sales to retailers", 9, text_color=TEXT_MUTED),
+    ]),
 ]
 
 # ---------------------------------------------------------------------------
@@ -405,6 +414,8 @@ report_json["themeCollection"]["customTheme"] = {
 report_json["resourcePackages"] = [p for p in report_json["resourcePackages"] if p["type"] != "RegisteredResources"]
 report_json["resourcePackages"].append({"name": "RegisteredResources", "type": "RegisteredResources",
                                         "items": [{"name": THEME_FILE, "path": THEME_FILE, "type": "CustomTheme"}]})
+# Filter pane available but collapsed by default (Step 9 decision)
+report_json["objects"] = {"outspacePane": [props(expanded=False)]}
 write_json(DEFINITION / "report.json", report_json)
 
 # Page: size and background; visuals folder rebuilt from scratch each run

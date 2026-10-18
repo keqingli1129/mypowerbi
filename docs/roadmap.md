@@ -21,8 +21,8 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 8b | Frame: theme, page, title, Year/Zone/Category slicers | ✅ | `b9a2ac9`, `02f477f` |
 | 8c | KPI strip: 5 tiles with context lines | ✅ | `4afb2e8` |
 | 8d | Monthly trend chart + gap to target by ASM | ✅ | `7a6fc06` |
-| 8e | Zone ▸ ASM scorecard + sell-in growth by category | ✅ | (this commit) |
-| 9 | Final publish and review of the report | ⬜ | |
+| 8e | Zone ▸ ASM scorecard + sell-in growth by category | ✅ | `5c6d82f` |
+| 9 | Final review: total row colored, source footer, filter pane collapsed; walkthrough rewritten | ✅ | (this commit) |
 | 10 | Load the data from Databricks instead of embedded rows | ⬜ | |
 
 ## Step 10 outline: Databricks as the data source
