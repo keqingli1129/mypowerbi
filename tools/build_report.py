@@ -103,28 +103,26 @@ def text_run(text, size, weight_font="Segoe UI", text_color=TEXT):
                                                         "color": text_color}}]}
 
 
-def dropdown_slicer(key, x, y, w, h, field, header, default=None, single=False, sync_group=None):
-    """Dropdown slicer; optional default selection (one value) and single-select."""
-    table = next(iter(field.values()))["Expression"]["SourceRef"]["Entity"]
+def dropdown_slicer(key, x, y, w, h, field, header, single=False, newest_first=False, sync_group=None):
+    """Dropdown slicer.
+
+    single:       strict single select (radio buttons); Power BI then always selects one item,
+                  the first in the list when nothing else is selected.
+    newest_first: sort the list descending, so with `single` the latest value (e.g. 2026) is the default.
+                  (Used instead of a hand-written default-selection filter, which made the report hang.)
+    """
     objects = {
         "data": [props(mode="Dropdown")],
         "header": [props(show=True, text=header)],
     }
     if single:
         objects["selection"] = [props(strictSingleSelect=True, selectAllCheckboxEnabled=False)]
-    if default is not None:
-        source_field = json.loads(json.dumps(field).replace('"Entity": "' + table + '"', '"Source": "d"'))
-        objects["general"] = [{"properties": {"filter": {"filter": {
-            "Version": 2,
-            "From": [{"Name": "d", "Entity": table, "Type": 0}],
-            "Where": [{"Condition": {"In": {
-                "Expressions": [source_field],
-                "Values": [[literal(default)]],
-            }}}],
-        }}}}]
+    query = {"queryState": {"Values": {"projections": [projection(field)]}}}
+    if newest_first:
+        query["sortDefinition"] = {"sort": [{"field": field, "direction": "Descending"}], "isDefaultSort": False}
     visual = {
         "visualType": "slicer",
-        "query": {"queryState": {"Values": {"projections": [projection(field)]}}},
+        "query": query,
         "objects": objects,
         "visualContainerObjects": {"padding": padding(8, 8, 12, 12)},
     }
@@ -151,10 +149,9 @@ exec_visuals = [
         text_run("Sell-in, sell-out and distributor stock · data from Jan 2025 to Jun 2026", 11,
                  text_color=TEXT_MUTED),
     ]),
-    # Year slicer temporarily removed: with default=2026 + single select + sync group it made the
-    # report hang at "Loading report" in the Service. Next: find which of the three options causes it.
-    # dropdown_slicer("exec.slicer.year", 1240, 24, 200, 80, column("Date", "Year"), "Year",
-    #                 default=2026, single=True, sync_group="Year"),
+    # Single year only (YoY needs one year), newest first so the default is the latest year (2026)
+    dropdown_slicer("exec.slicer.year", 1240, 24, 200, 80, column("Date", "Year"), "Year",
+                    single=True, newest_first=True, sync_group="Year"),
     dropdown_slicer("exec.slicer.zone", 1464, 24, 200, 80, column("Area", "Zone"), "Zone",
                     sync_group="Zone"),
     dropdown_slicer("exec.slicer.category", 1688, 24, 200, 80, column("Category", "Category"), "Category",
