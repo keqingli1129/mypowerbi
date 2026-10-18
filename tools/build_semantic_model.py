@@ -199,6 +199,14 @@ DIVIDE (
     SUM ( Coverage[Outlets Billed] )
 )"""},
     ],
+    "Refresh Info": [
+        {"name": "Last Refreshed Text", "folder": "Report Helpers", "format": None,
+         "description": "Footer text with the time of the last successful model refresh (UTC).",
+         "dax": """
+VAR LastRefresh = MAX ( 'Refresh Info'[Last Refreshed] )
+RETURN
+    IF ( NOT ISBLANK ( LastRefresh ), "Data refreshed " & FORMAT ( LastRefresh, "dd mmm yyyy hh:nn" ) & " UTC" )"""},
+    ],
 }
 
 # ---------------------------------------------------------------------------
@@ -206,7 +214,9 @@ DIVIDE (
 # ---------------------------------------------------------------------------
 
 HIDDEN = {"hidden": True}
+REFRESH_TABLE = "Refresh Info"  # utility table, not in fmcg_data: one row with the refresh time
 columns = {
+    REFRESH_TABLE: [("Last Refreshed", "dateTime", {"hidden": True, "format": "dd mmm yyyy hh:nn"})],
     "Date": [
         ("Date", "dateTime", {"key": True, "format": "dd mmm yyyy"}),
         ("Year", "int64", {"format": "0"}),
@@ -263,6 +273,7 @@ descriptions = {
     "Secondary Sales": "Secondary (sell-out) sales from distributors to retailers, per distributor × SKU × channel × month.",
     "Targets": "Monthly primary and secondary targets per ASM × Category (dated the first of the month).",
     "Coverage": "Monthly outlet coverage and call productivity per sales officer × city (dated the first of the month).",
+    REFRESH_TABLE: "One row holding the time of the last model refresh (computed by Power Query during refresh).",
 }
 
 # ---------------------------------------------------------------------------
@@ -354,13 +365,21 @@ def table_tmdl(name):
         if opt.get("sort_by"):
             lines.append(f"\t\tsortByColumn: {q(opt['sort_by'])}")
         # Databricks columns are snake_case (Delta names can't contain spaces)
-        lines += [f"\t\tsourceColumn: {snake(col) if SOURCE == 'databricks' else col}", ""]
+        source_col = snake(col) if SOURCE == "databricks" and name in data else col
+        lines += [f"\t\tsourceColumn: {source_col}", ""]
     if name == "Area":
         lines += ["\thierarchy 'Sales Hierarchy'", ""]
         for level in ["Zone", "RSM", "ASM"]:
             lines += [f"\t\tlevel {level}", f"\t\t\tcolumn: {level}", ""]
     lines += [f"\tpartition {q(name)} = m", "\t\tmode: import", "\t\tsource ="]
-    rows = databricks_rows(name) if SOURCE == "databricks" else embedded_rows(data[name], columns[name])
+    if name == REFRESH_TABLE:
+        # M runs only during a refresh, so this stores *when* the refresh happened
+        rows = ["#table(type table [#\"Last Refreshed\" = datetime], "
+                "{{DateTimeZone.RemoveZone(DateTimeZone.UtcNow())}})"]
+    elif SOURCE == "databricks":
+        rows = databricks_rows(name)
+    else:
+        rows = embedded_rows(data[name], columns[name])
     lines += [f"\t\t\t\t{line}" for line in rows]
     return "\n".join(lines) + "\n"
 
@@ -368,9 +387,10 @@ def table_tmdl(name):
 (DEF_DIR / "tables").mkdir(parents=True, exist_ok=True)
 for old in (DEF_DIR / "tables").glob("*.tmdl"):
     old.unlink()
-for name in data:
+for name in [*data, REFRESH_TABLE]:
     (DEF_DIR / "tables" / f"{name}.tmdl").write_text(table_tmdl(name), encoding="utf-8")
-    print(f"  {name:<16} {len(data[name]):>6} rows, {len(measures.get(name, []))} measures")
+    rows = len(data[name]) if name in data else 1
+    print(f"  {name:<16} {rows:>6} rows, {len(measures.get(name, []))} measures")
 
 rel_lines = []
 for fact, column, dim_name in RELATIONSHIPS:
@@ -383,7 +403,7 @@ for fact, column, dim_name in RELATIONSHIPS:
 (DEF_DIR / "model.tmdl").write_text("\n".join(
     ["model Model", "\tculture: en-US", "\tdefaultPowerBIDataSourceVersion: powerBI_V3",
      "\tsourceQueryCulture: en-US", "\tdiscourageImplicitMeasures", ""]
-    + [f"ref table {q(name)}" for name in data]) + "\n", encoding="utf-8")
+    + [f"ref table {q(name)}" for name in [*data, REFRESH_TABLE]]) + "\n", encoding="utf-8")
 
 # Connection parameters (Databricks only): one place to change warehouse, catalog or schema
 expressions = DEF_DIR / "expressions.tmdl"
@@ -405,5 +425,5 @@ else:
     "settings": {"qnaEnabled": True},
 }, indent=2) + "\n", encoding="utf-8")
 
-print(f"Source: {SOURCE}. Wrote {len(data)} tables, {len(RELATIONSHIPS)} relationships, "
+print(f"Source: {SOURCE}. Wrote {len(data) + 1} tables, {len(RELATIONSHIPS)} relationships, "
       f"{sum(len(v) for v in measures.values())} measures to {MODEL_DIR.name}/")

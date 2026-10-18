@@ -149,6 +149,28 @@ def dropdown_slicer(key, x, y, w, h, field, header, single=False, newest_first=F
     }
 
 
+def footer_card(key, x, y, w, h, field):
+    """Small right-aligned text from a measure, with no card background, sitting on the page footer."""
+    default = {"selector": {"id": "default"}}
+    return key, {
+        "$schema": VISUAL_SCHEMA,
+        "name": visual_id(key),
+        "position": {"x": x, "y": y, "z": 1000, "width": w, "height": h, "tabOrder": 4000},
+        "visual": {
+            "visualType": "cardVisual",
+            "query": {"queryState": {"Data": {"projections": [projection(field)]}}},
+            "objects": {
+                "label": [{**props(show=False), **default}],
+                "value": [{**props(fontSize=9.0, bold=False, fontColor=color(TEXT_MUTED),
+                                   horizontalAlignment="right"), **default}],
+                "outline": [{**props(show=False), **default}],
+            },
+            "visualContainerObjects": {"background": [props(show=False)], "border": [props(show=False)],
+                                       "padding": padding(0, 0, 0, 0)},
+        },
+    }
+
+
 def no_border_container():
     """Container formatting for card pieces that together form one borderless white tile."""
     return {"border": [props(show=False)], "padding": padding(4, 4, 16, 16)}
@@ -384,12 +406,13 @@ exec_visuals += [
                      "Sell-in growth by category (2026 vs 2025)",
                      "Bar chart of year-over-year sell-in growth by product category, green when growing",
                      direction="Descending", label_units=None),
-    # Footer: where the numbers come from (static text; a live "last refreshed" date comes with Step 10)
-    textbox("exec.footer", MARGIN, 1028, 1856, 24, [
-        text_run("Source: FMCG_Sales_Data_Suraj_Consumer.xlsx (snapshot embedded in the model) · "
+    # Footer: where the numbers come from (left) and when they were last refreshed (right)
+    textbox("exec.footer", MARGIN, 1028, 1400, 24, [
+        text_run("Source: Databricks e2e_dev.fmcg, loaded from FMCG_Sales_Data_Suraj_Consumer.xlsx · "
                  "Data Jan 2025 – Jun 2026 · Values in Indian rupees (₹) · Sell-in = primary sales to "
                  "distributors, sell-out = secondary sales to retailers", 9, text_color=TEXT_MUTED),
     ]),
+    footer_card("exec.footer.refreshed", 1456, 1024, 432, 32, measure("Refresh Info", "Last Refreshed Text")),
 ]
 
 # ---------------------------------------------------------------------------

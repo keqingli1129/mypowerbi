@@ -14,3 +14,4 @@ ref table 'Primary Sales'
 ref table 'Secondary Sales'
 ref table Targets
 ref table Coverage
+ref table 'Refresh Info'

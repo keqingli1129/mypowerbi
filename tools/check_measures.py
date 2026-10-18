@@ -140,5 +140,17 @@ for measure, want in expected_text.items():
     results.append(ok)
     print(f"  {'✅' if ok else '❌'} {measure:<42} model {row26[measure]!r}   expected {want!r}")
 
+print("G. Last refreshed text (from the Refresh Info table)")
+text = dax('EVALUATE ROW("v", [Last Refreshed Text])')[0]["v"] or ""
+try:
+    refreshed = pd.to_datetime(text.removeprefix("Data refreshed ").removesuffix(" UTC"), format="%d %b %Y %H:%M")
+    age_hours = (pd.Timestamp.now("UTC").tz_localize(None) - refreshed).total_seconds() / 3600
+    ok = 0 <= age_hours < 48   # refreshed within the last two days (daily schedule)
+except ValueError:
+    age_hours, ok = None, False
+results.append(ok)
+age = "unparseable" if age_hours is None else f"{age_hours:.1f} h ago"
+print(f"  {'✅' if ok else '❌'} {'Last Refreshed Text':<42} model {text!r} ({age})")
+
 print(f"\n{sum(results)} of {len(results)} checks passed.")
 sys.exit(0 if all(results) else 1)

@@ -22,19 +22,24 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 8c | KPI strip: 5 tiles with context lines | ✅ | `4afb2e8` |
 | 8d | Monthly trend chart + gap to target by ASM | ✅ | `7a6fc06` |
 | 8e | Zone ▸ ASM scorecard + sell-in growth by category | ✅ | `5c6d82f` |
-| 9 | Final review: total row colored, source footer, filter pane collapsed; walkthrough rewritten | ✅ | (this commit) |
-| 10 | Load the data from Databricks instead of embedded rows | ⬜ | |
+| 9 | Final review: total row colored, source footer, filter pane collapsed; walkthrough rewritten | ✅ | `e42ee4a` |
+| 10 | Databricks as the data source | ✅ | |
+| 10a | Choose workspace (azure profile), warehouse, catalog: `e2e_dev.fmcg` | ✅ | (decisions only) |
+| 10b | Load the 10 tables as Delta tables (`tools/load_to_databricks.py`) | ✅ | `dc36337` |
+| 10c | Model partitions read Databricks; snake_case `sourceColumn`; connection parameters | ✅ | `9c76c3c` |
+| 10d | Personal access token (scope: BI Tools) entered in the Service | ✅ | (Service only) |
+| 10e | Daily 06:00 Central scheduled refresh; "Data refreshed …" footer; 37 checks | ✅ | (this commit) |
 
-## Step 10 outline: Databricks as the data source
+## Data source today
 
-1. Load the shaped tables (the 10 tables the build script creates) into Unity Catalog.
-2. Replace each table's partition (embedded-data M recipe) with the Databricks connector,
-   keeping the same column names, so measures, relationships and the report don't change.
-3. Sign in to Databricks once in the model's settings in the Service (data source credentials).
-4. Set a scheduled refresh.
-5. Re-run `tools/check_measures.py`; all checks must still pass.
+```
+Excel ──(tools/load_to_databricks.py, run manually)──► Databricks e2e_dev.fmcg ──(daily 06:00 refresh)──► Power BI
+```
 
-Decisions needed then: which Databricks profile, SQL warehouse, and catalog/schema to write to.
+- Credentials: a Databricks personal access token (scope **BI Tools**, 13-day lifetime) stored in
+  the semantic model's **Data source credentials**. When it expires, the 06:00 refresh fails and you
+  get an email: generate a new token and paste it there.
+- Fallback without Databricks: `build_semantic_model.py --source embedded` → `publish_model.py`.
 
 ## Lessons learned so far
 
@@ -51,3 +56,8 @@ Decisions needed then: which Databricks profile, SQL warehouse, and catalog/sche
   bars (`dataPoint.fill`) and matrix text (`values.fontColor`). Totals stay uncolored
   (`matchingOption: 1` = values only).
 - My workspace uses `/myorg/datasets/...` API paths, not `/groups/{id}/...`.
+- Switching the data source only changed partitions and `sourceColumn` names; all 36 existing
+  checks passed unchanged against Databricks.
+- The first refresh after switching to Databricks took about 13 minutes on shared capacity, although
+  Databricks answered every query in under 2 seconds.
+- A refresh copies Databricks → Power BI; it never re-reads the Excel file.

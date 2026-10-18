@@ -1,0 +1,22 @@
+/// One row holding the time of the last model refresh (computed by Power Query during refresh).
+table 'Refresh Info'
+
+	/// Footer text with the time of the last successful model refresh (UTC).
+	measure 'Last Refreshed Text' = ```
+			VAR LastRefresh = MAX ( 'Refresh Info'[Last Refreshed] )
+			RETURN
+			    IF ( NOT ISBLANK ( LastRefresh ), "Data refreshed " & FORMAT ( LastRefresh, "dd mmm yyyy hh:nn" ) & " UTC" )
+			```
+		displayFolder: Report Helpers
+
+	column 'Last Refreshed'
+		dataType: dateTime
+		isHidden
+		formatString: dd mmm yyyy hh:nn
+		summarizeBy: none
+		sourceColumn: Last Refreshed
+
+	partition 'Refresh Info' = m
+		mode: import
+		source =
+				#table(type table [#"Last Refreshed" = datetime], {{DateTimeZone.RemoveZone(DateTimeZone.UtcNow())}})

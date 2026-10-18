@@ -2,7 +2,7 @@
 
 How the **FMCG Sales Executive Summary** was built from an Excel file, entirely from a Linux
 machine (no Power BI Desktop), as a PBIP project in Git, published to **My workspace** in the
-Power BI Service. Step status and commit IDs are in [roadmap.md](roadmap.md).
+Power BI Service, and finally fed from **Databricks** with a daily scheduled refresh. Step status and commit IDs are in [roadmap.md](roadmap.md).
 
 ## The result
 
@@ -31,13 +31,13 @@ of units sold to distributors don't move on to retailers, so distributor stock k
 ## How the pieces fit
 
 ```
-data/*.xlsx ──► tools/build_semantic_model.py ──► FMCG_Sales.SemanticModel/ (TMDL, data embedded)
-                                                         │ tools/publish_model.py (Fabric API + refresh)
-                                                         ▼
-                                              Service: FMCG_Sales semantic model ◄── tools/check_measures.py
-                                                         ▲   (report refers to measures by name)
-tools/theme/ + tools/build_report.py ──► FMCG_Sales.Report/ (PBIR) ── tools/publish_report.py
-                                                                       (byConnection to the model)
+data/*.xlsx ─► tools/fmcg_data.py (shaping) ─┬─► tools/load_to_databricks.py ─► Databricks e2e_dev.fmcg (Delta)
+                                              │                                        │ daily 06:00 refresh
+                                              └─► tools/build_semantic_model.py         ▼
+                                                    ─► FMCG_Sales.SemanticModel/ ─► Service: FMCG_Sales model
+                                                       (TMDL; partitions read       ▲   ◄── tools/check_measures.py
+                                                        Databricks)                 │   (report refers to measures)
+tools/theme/ + tools/build_report.py ─► FMCG_Sales.Report/ (PBIR) ─► tools/publish_report.py
 ```
 
 | Part | What it is |
@@ -54,6 +54,7 @@ tools/theme/ + tools/build_report.py ──► FMCG_Sales.Report/ (PBIR) ── 
 | Azure CLI `az`, signed in (`az login`) | API tokens for publishing and DAX queries |
 | `powerbi-report-author` (`npm install -g @microsoft/powerbi-report-authoring-cli`) | Scaffolding and validating PBIR |
 | Power BI account with My workspace | Where the model and report live |
+| Databricks CLI, `azure` profile, `pyarrow` | Loading the tables into Databricks (Step 10) |
 
 ## Step by step
 
@@ -138,7 +139,9 @@ collapsed by default. Not shared (My workspace is private to its owner).
 
 | Change | Do this |
 |---|---|
-| Excel data updated | Re-run `build_semantic_model.py` → `publish_model.py` → `check_measures.py` |
+| Excel data updated | Run `load_to_databricks.py`; the 06:00 refresh picks it up (or refresh now from the Service) → `check_measures.py` |
+| Databricks token expired (refresh-failure email) | Generate a new token (scope: BI Tools) → Service: model **Settings → Data source credentials** |
+| Work without Databricks | `build_semantic_model.py --source embedded` → `publish_model.py` |
 | New or changed measure | Edit `measures` in `build_semantic_model.py` → regenerate → publish model → add a check |
 | Visual, layout or theme | Edit `build_report.py` or `tools/theme/CleanCorporate.json` → `build_report.py` → validate → `publish_report.py` |
 | See your change | Reopen the report (Ctrl+F5); click **Reset to default** to drop your remembered slicer choices |
@@ -160,8 +163,19 @@ collapsed by default. Not shared (My workspace is private to its owner).
 - **Model-view layout** arranged in the browser (Editing mode only; Viewing mode doesn't save)
   stays in the Service and survived model republishing, but the API doesn't export it.
 
-## Next: Step 10, Databricks as the data source
+### 10. Databricks as the data source
 
-Only each table's **partition** changes, from embedded JSON to the Databricks connector, as long
-as the column names stay the same. Measures, relationships and the report don't change. See the
-outline in [roadmap.md](roadmap.md).
+| Sub-step | What happened |
+|---|---|
+| 10a | Chose the `azure` profile, the Serverless Starter Warehouse and catalog/schema `e2e_dev.fmcg` |
+| 10b | `load_to_databricks.py`: shaped tables → Parquet → Unity Catalog volume → `CREATE OR REPLACE TABLE … AS SELECT * FROM read_files(…)` with DATE/DECIMAL/BIGINT casts; snake_case names because Delta column names can't contain spaces; row counts verified |
+| 10c | Partitions now use `Databricks.Catalogs(host, httpPath)` → catalog → schema → table; `sourceColumn` points at the snake_case columns; 4 connection parameters in `expressions.tmdl`. Measures, relationships and the report didn't change. |
+| 10d | A Databricks personal access token (scope **BI Tools**) entered in the model's **Data source credentials** |
+| 10e | Daily 06:00 Central refresh (`set_refresh_schedule.py`, email on failure); a `Refresh Info` table captures the refresh time for the footer ("Data refreshed … UTC"); 37 checks pass |
+
+```bash
+uv run --no-project --with pandas --with openpyxl --with pyarrow python -I tools/load_to_databricks.py
+uv run --no-project --with pandas --with openpyxl python -I tools/build_semantic_model.py   # --source databricks
+python3 -I tools/publish_model.py && python3 -I tools/set_refresh_schedule.py
+```
+
