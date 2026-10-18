@@ -41,6 +41,11 @@ Excel ──(tools/load_to_databricks.py, run manually)──► Databricks e2e_
   get an email: generate a new token and paste it there.
 - Fallback without Databricks: `build_semantic_model.py --source embedded` → `publish_model.py`.
 
+## Next options
+
+- **On-premises SQL Server as the source** (with an on-premises data gateway on a Windows machine):
+  step-by-step guide in [sqlserver_onprem_guide.md](sqlserver_onprem_guide.md), not yet done.
+
 ## Lessons learned so far
 
 - `powerbi-report-author validate` checks file structure, not rendering. A hand-written slicer
