@@ -16,12 +16,12 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 5 | Publish the model to My workspace and refresh (`tools/publish_model.py`) | ✅ | `1dd1780` |
 | 6 | Check the numbers against the Excel file (`tools/check_measures.py`) | ✅ | `c7711d9` |
 | 7 | Plan the report: one page first, sales leadership, 1920×1080, clean corporate | ✅ | (decisions only) |
-| 8 | Build the Executive Summary page | 🔄 | |
+| 8 | Build the Executive Summary page | ✅ | |
 | 8a | Helper measures: KPI context text, red/green colors | ✅ | `a218897` |
 | 8b | Frame: theme, page, title, Year/Zone/Category slicers | ✅ | `b9a2ac9`, `02f477f` |
 | 8c | KPI strip: 5 tiles with context lines | ✅ | `4afb2e8` |
-| 8d | Monthly trend chart + gap to target by ASM | ⬜ | |
-| 8e | Zone ▸ ASM scorecard + sell-in growth by category | ⬜ | |
+| 8d | Monthly trend chart + gap to target by ASM | ✅ | `7a6fc06` |
+| 8e | Zone ▸ ASM scorecard + sell-in growth by category | ✅ | (this commit) |
 | 9 | Final publish and review of the report | ⬜ | |
 | 10 | Load the data from Databricks instead of embedded rows | ⬜ | |
 
@@ -43,5 +43,11 @@ Decisions needed then: which Databricks profile, SQL warehouse, and catalog/sche
   one at a time in the Service.
 - The Service remembers each viewer's slicer choices. After republishing, use **Reset to default**.
 - The model-view layout made in the browser (Editing mode) stays in the Service but isn't
-  exported by the API, so it isn't in Git.
+  exported by the API, so it isn't in Git. Republishing the model with `updateDefinition`
+  did not reset it.
+- Display units must be a number literal (`"1000000D"`); the text `"'1000000'"` validates but is
+  silently ignored.
+- Text measures returning hex colors (`Achievement Color`, `Primary YoY Color`) drive red/green on
+  bars (`dataPoint.fill`) and matrix text (`values.fontColor`). Totals stay uncolored
+  (`matchingOption: 1` = values only).
 - My workspace uses `/myorg/datasets/...` API paths, not `/groups/{id}/...`.

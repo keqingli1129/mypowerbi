@@ -249,8 +249,11 @@ def trend_chart(key, x, y, w, h, category, series):
     }
 
 
-def ranked_bar_chart(key, x, y, w, h, category, value, value_name, color_measure, title, alt_text):
-    """Horizontal bars sorted lowest first; each bar colored by a color measure (red/green)."""
+def ranked_bar_chart(key, x, y, w, h, category, value, value_name, color_measure, title, alt_text,
+                     direction="Ascending", label_units=MILLIONS):
+    """Horizontal bars sorted by value; each bar colored by a color measure (red/green)."""
+    units = {"labelDisplayUnits": label_units, "labelPrecision": 1} if label_units else {}
+    labels = props(show=True, **units, fontSize=10.0)
     return key, {
         "$schema": VISUAL_SCHEMA,
         "name": visual_id(key),
@@ -262,13 +265,47 @@ def ranked_bar_chart(key, x, y, w, h, category, value, value_name, color_measure
                     "Category": {"projections": [projection(category)]},
                     "Y": {"projections": [projection(value, value_name)]},
                 },
-                "sortDefinition": {"sort": [{"field": value, "direction": "Ascending"}], "isDefaultSort": False},
+                "sortDefinition": {"sort": [{"field": value, "direction": direction}], "isDefaultSort": False},
             },
             "objects": {
                 # color comes from the measure, evaluated per bar (conditional formatting by field value)
                 "dataPoint": [{"properties": {"fill": {"solid": {"color": {"expr": color_measure}}}},
                                "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}],
-                "labels": [props(show=True, labelDisplayUnits=MILLIONS, labelPrecision=1, fontSize=10.0)],
+                "labels": [labels],
+            },
+            "visualContainerObjects": chart_container(title, alt_text),
+        },
+    }
+
+
+def scorecard_matrix(key, x, y, w, h, rows, values, title, alt_text):
+    """Matrix (pivotTable). values = [(field, display name, color measure or None, show in millions)]."""
+    value_entries = []   # conditional font colors: the color measure is evaluated per cell
+    column_entries = []  # static per-column formatting (display units)
+    for field, _, color_measure, millions in values:
+        ref = query_ref(field)
+        if color_measure:
+            value_entries.append({
+                "properties": {"fontColor": {"solid": {"color": {"expr": color_measure}}}},
+                "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}], "metadata": ref},
+            })
+        if millions:
+            column_entries.append({**props(labelDisplayUnits=MILLIONS, labelPrecision=1),
+                                   "selector": {"metadata": ref}})
+    return key, {
+        "$schema": VISUAL_SCHEMA,
+        "name": visual_id(key),
+        "position": {"x": x, "y": y, "z": 4000, "width": w, "height": h, "tabOrder": 3200},
+        "visual": {
+            "visualType": "pivotTable",
+            "query": {"queryState": {
+                "Rows": {"projections": [projection(f) for f in rows]},
+                "Values": {"projections": [projection(f, name) for f, name, _, _ in values]},
+            }},
+            "objects": {
+                "columnHeaders": [props(columnAdjustment="growToFit", autoSizeColumnWidth=True)],
+                "values": value_entries,
+                "columnFormatting": column_entries,
             },
             "visualContainerObjects": chart_container(title, alt_text),
         },
@@ -326,6 +363,24 @@ exec_visuals += [
                      measure("Targets", "Achievement Color"),
                      "Gap to primary target by ASM (worst first)",
                      "Bar chart of each area sales manager's gap to primary target, red when behind"),
+]
+
+# Bottom row (y 680-1048): scorecard on the left, growth by category on the right
+exec_visuals += [
+    scorecard_matrix("exec.scorecard", MARGIN, 680, 1100, 368, [column("Area", "Zone"), column("Area", "ASM")], [
+        (measure("Primary Sales", "Primary Sales"), "Sell-in", None, True),
+        (measure("Targets", "Primary Target"), "Target", None, True),
+        (measure("Targets", "Primary Achievement %"), "% of target", measure("Targets", "Achievement Color"), False),
+        (measure("Primary Sales", "Primary YoY %"), "YoY", measure("Primary Sales", "Primary YoY Color"), False),
+        (measure("Secondary Sales", "Sell-Through %"), "Sell-through", None, False),
+    ], "Scorecard by zone and ASM (click + to expand)",
+        "Matrix of sell-in, target, percent of target, year-over-year growth and sell-through by zone and ASM"),
+    ranked_bar_chart("exec.growth_by_category", 1156, 680, 732, 368, column("Category", "Category"),
+                     measure("Primary Sales", "Primary YoY %"), "Sell-in growth",
+                     measure("Primary Sales", "Primary YoY Color"),
+                     "Sell-in growth by category (2026 vs 2025)",
+                     "Bar chart of year-over-year sell-in growth by product category, green when growing",
+                     direction="Descending", label_units=None),
 ]
 
 # ---------------------------------------------------------------------------
