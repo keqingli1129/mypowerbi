@@ -30,6 +30,27 @@ table Targets
 		formatString: ₹#,##0;-₹#,##0;₹0
 		displayFolder: Achievement
 
+	/// Text under the % of target KPI: rupee gap to the primary target.
+	measure 'Achievement Context' = ```
+			VAR Gap = [Primary Gap to Target]
+			RETURN
+			    IF (
+			        ISBLANK ( Gap ),
+			        "No target set",
+			        IF ( Gap >= 0, "▲ ₹", "▼ ₹" ) & FORMAT ( ABS ( Gap ) / 1000000, "0.0" ) & "M "
+			            & IF ( Gap >= 0, "above", "below" ) & " target"
+			    )
+			```
+		displayFolder: Report Helpers
+
+	/// Green at or above 100% of primary target, red below; used for conditional formatting.
+	measure 'Achievement Color' = ```
+			VAR Achievement = [Primary Achievement %]
+			RETURN
+			    IF ( NOT ISBLANK ( Achievement ), IF ( Achievement >= 1, "#1A7F37", "#C62828" ) )
+			```
+		displayFolder: Report Helpers
+
 	column Date
 		dataType: dateTime
 		isHidden

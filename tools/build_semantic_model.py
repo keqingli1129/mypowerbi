@@ -139,6 +139,23 @@ for fact, column, dim_name in relationships:
 # ---------------------------------------------------------------------------
 
 
+GOOD, BAD = "#1A7F37", "#C62828"  # green / red used for conditional formatting in the report
+
+
+def growth_context(prefix):
+    """Report helper: KPI context line such as '▲ 9.4% vs last year'."""
+    return {"name": f"{prefix} Sales Context", "folder": "Report Helpers", "format": None,
+            "description": f"Text under the {prefix.lower()} sales KPI: growth vs last year.",
+            "dax": f"""
+VAR Growth = [{prefix} YoY %]
+RETURN
+    IF (
+        ISBLANK ( Growth ),
+        "No prior-year data",
+        IF ( Growth >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( Growth ), "0.0%" ) & " vs last year"
+    )"""}
+
+
 def time_intelligence(prefix):
     """PY, YoY %, PM and MoM % measures for 'Primary' or 'Secondary' sales."""
     base = f"{prefix} Sales"
@@ -179,6 +196,13 @@ measures = {
         {"name": "Scheme Spend %", "folder": "Trade Spend", "format": "0.0%",
          "description": "Scheme (trade promotion) discount as a share of gross primary value.",
          "dax": "DIVIDE ( SUM ( 'Primary Sales'[Scheme Discount] ), SUM ( 'Primary Sales'[Gross Value] ) )"},
+        growth_context("Primary"),
+        {"name": "Primary YoY Color", "folder": "Report Helpers", "format": None,
+         "description": "Green when sell-in grew vs last year, red when it fell; used for conditional formatting.",
+         "dax": f"""
+VAR Growth = [Primary YoY %]
+RETURN
+    IF ( NOT ISBLANK ( Growth ), IF ( Growth >= 0, "{GOOD}", "{BAD}" ) )"""},
     ] + time_intelligence("Primary"),
     "Secondary Sales": [
         {"name": "Secondary Sales", "folder": "Core", "format": "₹#,##0",
@@ -203,6 +227,22 @@ RETURN
         {"name": "Category Mix %", "folder": "Core", "format": "0.0%",
          "description": "This category's share of secondary sales within the current filters.",
          "dax": "DIVIDE ( [Secondary Sales], CALCULATE ( [Secondary Sales], REMOVEFILTERS ( Category ) ) )"},
+        growth_context("Secondary"),
+        {"name": "Sell-Through Context", "folder": "Report Helpers", "format": None,
+         "description": "Text under the sell-through KPI: share of units not yet sold on to retailers.",
+         "dax": """
+VAR SellThrough = [Sell-Through %]
+RETURN
+    IF ( NOT ISBLANK ( SellThrough ), FORMAT ( 1 - SellThrough, "0.0%" ) & " of units still with distributors" )"""},
+        {"name": "Pipeline Stock Context", "folder": "Report Helpers", "format": None,
+         "description": "Text under the distributor stock KPI: units added to stock in the selected period.",
+         "dax": """
+VAR Added = [Primary Units] - [Secondary Units]
+RETURN
+    IF (
+        NOT ISBLANK ( Added ),
+        IF ( Added >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( Added ), "#,##0" ) & " units added this period"
+    )"""},
     ] + time_intelligence("Secondary"),
     "Targets": [
         {"name": "Primary Target", "folder": "Targets", "format": "₹#,##0",
@@ -223,6 +263,23 @@ RETURN
 VAR TargetValue = [Primary Target]
 RETURN
     IF ( NOT ISBLANK ( TargetValue ), [Primary Sales] - TargetValue )"""},
+        {"name": "Achievement Context", "folder": "Report Helpers", "format": None,
+         "description": "Text under the % of target KPI: rupee gap to the primary target.",
+         "dax": """
+VAR Gap = [Primary Gap to Target]
+RETURN
+    IF (
+        ISBLANK ( Gap ),
+        "No target set",
+        IF ( Gap >= 0, "▲ ₹", "▼ ₹" ) & FORMAT ( ABS ( Gap ) / 1000000, "0.0" ) & "M "
+            & IF ( Gap >= 0, "above", "below" ) & " target"
+    )"""},
+        {"name": "Achievement Color", "folder": "Report Helpers", "format": None,
+         "description": "Green at or above 100% of primary target, red below; used for conditional formatting.",
+         "dax": f"""
+VAR Achievement = [Primary Achievement %]
+RETURN
+    IF ( NOT ISBLANK ( Achievement ), IF ( Achievement >= 1, "{GOOD}", "{BAD}" ) )"""},
     ],
     "Coverage": [
         {"name": "Numeric Distribution %", "folder": "Coverage", "format": "0.0%",
@@ -364,7 +421,9 @@ def table_tmdl(name):
             lines.append("\t\t\t```")
         else:
             lines.append(f"\tmeasure {q(m['name'])} = {dax}")
-        lines += [f"\t\tformatString: {m['format']}", f"\t\tdisplayFolder: {m['folder']}", ""]
+        if m["format"]:  # text/color helper measures have no number format
+            lines.append(f"\t\tformatString: {m['format']}")
+        lines += [f"\t\tdisplayFolder: {m['folder']}", ""]
     for col, dtype, opt in columns[name]:
         lines += [f"\tcolumn {q(col)}", f"\t\tdataType: {dtype}"]
         if opt.get("key"):

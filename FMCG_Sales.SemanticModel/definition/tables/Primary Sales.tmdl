@@ -16,6 +16,26 @@ table 'Primary Sales'
 		formatString: 0.0%
 		displayFolder: Trade Spend
 
+	/// Text under the primary sales KPI: growth vs last year.
+	measure 'Primary Sales Context' = ```
+			VAR Growth = [Primary YoY %]
+			RETURN
+			    IF (
+			        ISBLANK ( Growth ),
+			        "No prior-year data",
+			        IF ( Growth >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( Growth ), "0.0%" ) & " vs last year"
+			    )
+			```
+		displayFolder: Report Helpers
+
+	/// Green when sell-in grew vs last year, red when it fell; used for conditional formatting.
+	measure 'Primary YoY Color' = ```
+			VAR Growth = [Primary YoY %]
+			RETURN
+			    IF ( NOT ISBLANK ( Growth ), IF ( Growth >= 0, "#1A7F37", "#C62828" ) )
+			```
+		displayFolder: Report Helpers
+
 	/// Primary Sales for the same period last year. Blank unless one year is in context (data starts in Jan 2025).
 	measure 'Primary Sales PY' = ```
 			IF (

@@ -118,5 +118,27 @@ print("E. Cumulative stock at a point in time")
 stock = dax("EVALUATE CALCULATETABLE(ROW(\"v\", [Pipeline Stock Units]), 'Date'[Year] = 2025)")[0]["v"]
 check("Pipeline Stock Units at end of 2025", stock, expected_stock_dec_2025)
 
+print("F. Report helper measures (text and colors) for 2026")
+p26, s26 = p[p.Date.dt.year == 2026], s[s.Date.dt.year == 2026]
+t26 = t[t.Month.str.startswith("2026")]
+gap = p26.Net_Primary_Value.sum() - t26.Primary_Target.sum()
+added = p26.Units.sum() - s26.Units_Sold.sum()
+arrow = lambda v: "▲ " if v >= 0 else "▼ "
+expected_text = {
+    "Primary Sales Context": f"{arrow(expected_2026['Primary YoY %'])}{abs(expected_2026['Primary YoY %']):.1%} vs last year",
+    "Secondary Sales Context": f"{arrow(expected_2026['Secondary YoY %'])}{abs(expected_2026['Secondary YoY %']):.1%} vs last year",
+    "Achievement Context": f"{arrow(gap)}₹{abs(gap) / 1e6:.1f}M {'above' if gap >= 0 else 'below'} target",
+    "Sell-Through Context": f"{1 - s26.Units_Sold.sum() / p26.Units.sum():.1%} of units still with distributors",
+    "Pipeline Stock Context": f"{arrow(added)}{abs(added):,} units added this period",
+    "Achievement Color": "#1A7F37" if gap >= 0 else "#C62828",
+    "Primary YoY Color": "#1A7F37" if expected_2026["Primary YoY %"] >= 0 else "#C62828",
+}
+row26 = dax("EVALUATE CALCULATETABLE(ROW(" + ", ".join(f'"{m}", [{m}]' for m in expected_text)
+            + "), 'Date'[Year] = 2026)")[0]
+for measure, want in expected_text.items():
+    ok = row26[measure] == want
+    results.append(ok)
+    print(f"  {'✅' if ok else '❌'} {measure:<42} model {row26[measure]!r}   expected {want!r}")
+
 print(f"\n{sum(results)} of {len(results)} checks passed.")
 sys.exit(0 if all(results) else 1)

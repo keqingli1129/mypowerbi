@@ -34,6 +34,37 @@ table 'Secondary Sales'
 		formatString: 0.0%
 		displayFolder: Core
 
+	/// Text under the secondary sales KPI: growth vs last year.
+	measure 'Secondary Sales Context' = ```
+			VAR Growth = [Secondary YoY %]
+			RETURN
+			    IF (
+			        ISBLANK ( Growth ),
+			        "No prior-year data",
+			        IF ( Growth >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( Growth ), "0.0%" ) & " vs last year"
+			    )
+			```
+		displayFolder: Report Helpers
+
+	/// Text under the sell-through KPI: share of units not yet sold on to retailers.
+	measure 'Sell-Through Context' = ```
+			VAR SellThrough = [Sell-Through %]
+			RETURN
+			    IF ( NOT ISBLANK ( SellThrough ), FORMAT ( 1 - SellThrough, "0.0%" ) & " of units still with distributors" )
+			```
+		displayFolder: Report Helpers
+
+	/// Text under the distributor stock KPI: units added to stock in the selected period.
+	measure 'Pipeline Stock Context' = ```
+			VAR Added = [Primary Units] - [Secondary Units]
+			RETURN
+			    IF (
+			        NOT ISBLANK ( Added ),
+			        IF ( Added >= 0, "▲ ", "▼ " ) & FORMAT ( ABS ( Added ), "#,##0" ) & " units added this period"
+			    )
+			```
+		displayFolder: Report Helpers
+
 	/// Secondary Sales for the same period last year. Blank unless one year is in context (data starts in Jan 2025).
 	measure 'Secondary Sales PY' = ```
 			IF (
