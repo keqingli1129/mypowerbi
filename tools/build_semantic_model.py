@@ -16,123 +16,18 @@ from pathlib import Path
 
 import pandas as pd
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from fmcg_data import DIMENSION_KEYS, RELATIONSHIPS, load_tables  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
-XLSX = ROOT / "data" / "FMCG_Sales_Data_Suraj_Consumer.xlsx"
 MODEL_DIR = ROOT / "FMCG_Sales.SemanticModel"
 DEF_DIR = MODEL_DIR / "definition"
 
 # ---------------------------------------------------------------------------
-# 1. Read the workbook and shape each table (Step 2 design)
+# 1. The 10 star-schema tables (Step 2 design), shaped in tools/fmcg_data.py
 # ---------------------------------------------------------------------------
 
-sheets = pd.read_excel(XLSX, sheet_name=None)
-primary = sheets["Primary_Sales"]
-secondary = sheets["Secondary_Sales"]
-targets = sheets["Targets"]
-coverage = sheets["Coverage_Productivity"]
-products = sheets["Product_Master"]
-distributors = sheets["Distributor_Master"]
-calendar = sheets["Calendar"]
-
-
-def month_start(month_text):
-    """Turn '2025-01' into the date 2025-01-01 so monthly facts can join the Date table."""
-    return pd.to_datetime(month_text + "-01")
-
-
-# Dimensions
-date_df = pd.DataFrame({
-    "Date": calendar["Date"],
-    "Year": calendar["Year"],
-    "Month Number": calendar["Month_No"],
-    "Year Month Number": calendar["Year"] * 100 + calendar["Month_No"],
-    "Month Name": calendar["Month_Name"],
-    "Month": calendar["Date"].dt.strftime("%b"),
-    "Quarter": "Q" + calendar["Quarter"].astype(str),
-    "Financial Year": calendar["FY"],
-})
-area_df = (distributors[["Zone", "RSM", "ASM"]].drop_duplicates()
-           .sort_values(["Zone", "RSM", "ASM"]).reset_index(drop=True))
-sales_officer_df = (distributors[["SO", "ASM"]].drop_duplicates()
-                    .rename(columns={"SO": "Sales Officer"})
-                    .sort_values("Sales Officer").reset_index(drop=True))
-distributor_df = distributors[["Distributor_Code", "Distributor_Name", "State", "City"]].rename(
-    columns={"Distributor_Code": "Distributor Code", "Distributor_Name": "Distributor"})
-category_df = pd.DataFrame({"Category": sorted(products["Category"].unique())})
-product_df = products[["SKU_Code", "Brand", "SKU", "Pack", "MRP", "UnitsPerCase", "PTR", "PTS"]].rename(
-    columns={"SKU_Code": "SKU Code", "UnitsPerCase": "Units Per Case"})
-
-# Facts: keep keys + numbers only (descriptive columns live in the dimensions)
-primary_df = pd.DataFrame({
-    "Date": primary["Date"],
-    "ASM": primary["ASM"],
-    "Sales Officer": primary["SO"],
-    "Category": primary["Category"],
-    "Distributor Code": primary["Distributor_Code"],
-    "SKU Code": primary["SKU_Code"],
-    "Units": primary["Units"],
-    "Gross Value": primary["Gross_Value"],
-    "Scheme Discount": primary["Scheme_Discount"].round(2),
-    "Net Primary Value": primary["Net_Primary_Value"].round(2),
-})
-secondary_df = pd.DataFrame({
-    "Date": secondary["Date"],
-    "ASM": secondary["ASM"],
-    "Sales Officer": secondary["SO"],
-    "Category": secondary["Category"],
-    "Distributor Code": secondary["Distributor_Code"],
-    "SKU Code": secondary["SKU_Code"],
-    "Channel": secondary["Channel"],
-    "Units Sold": secondary["Units_Sold"],
-    "Secondary Value": secondary["Secondary_Value"].round(2),
-})
-targets_df = pd.DataFrame({
-    "Date": month_start(targets["Month"]),
-    "ASM": targets["ASM"],
-    "Category": targets["Category"],
-    "Primary Target Value": targets["Primary_Target"],
-    "Secondary Target Value": targets["Secondary_Target"],
-})
-coverage_df = pd.DataFrame({
-    "Date": month_start(coverage["Month"]),
-    "ASM": coverage["ASM"],
-    "Sales Officer": coverage["SO"],
-    "Total Outlets": coverage["Total_Outlets"],
-    "Outlets Billed": coverage["Outlets_Billed"],
-    "Planned Calls": coverage["Planned_Calls"],
-    "Productive Calls": coverage["Productive_Calls"],
-    "Lines Per Bill": coverage["Avg_Lines_Per_Bill"],
-})
-
-# Safety checks: dimension keys are unique, and every fact key exists in its dimension
-dimensions = {"Date": (date_df, "Date"), "Area": (area_df, "ASM"),
-              "Sales Officer": (sales_officer_df, "Sales Officer"),
-              "Distributor": (distributor_df, "Distributor Code"),
-              "Category": (category_df, "Category"), "Product": (product_df, "SKU Code")}
-for name, (dim, key) in dimensions.items():
-    if dim[key].duplicated().any():
-        sys.exit(f"Duplicate key in {name}[{key}]")
-
-# (fact table, fact column, dimension) — this list is also the relationship list
-relationships = [
-    ("Primary Sales", "Date", "Date"), ("Secondary Sales", "Date", "Date"),
-    ("Targets", "Date", "Date"), ("Coverage", "Date", "Date"),
-    ("Primary Sales", "ASM", "Area"), ("Secondary Sales", "ASM", "Area"),
-    ("Targets", "ASM", "Area"), ("Coverage", "ASM", "Area"),
-    ("Primary Sales", "Category", "Category"), ("Secondary Sales", "Category", "Category"),
-    ("Targets", "Category", "Category"),
-    ("Primary Sales", "Sales Officer", "Sales Officer"), ("Secondary Sales", "Sales Officer", "Sales Officer"),
-    ("Coverage", "Sales Officer", "Sales Officer"),
-    ("Primary Sales", "Distributor Code", "Distributor"), ("Secondary Sales", "Distributor Code", "Distributor"),
-    ("Primary Sales", "SKU Code", "Product"), ("Secondary Sales", "SKU Code", "Product"),
-]
-facts = {"Primary Sales": primary_df, "Secondary Sales": secondary_df,
-         "Targets": targets_df, "Coverage": coverage_df}
-for fact, column, dim_name in relationships:
-    dim, key = dimensions[dim_name]
-    missing = set(facts[fact][column]) - set(dim[key])
-    if missing:
-        sys.exit(f"{fact}[{column}] has values missing from {dim_name}: {sorted(missing)[:5]}")
+data = load_tables()
 
 # ---------------------------------------------------------------------------
 # 2. Measures (Step 3)
@@ -361,8 +256,6 @@ descriptions = {
     "Targets": "Monthly primary and secondary targets per ASM × Category (dated the first of the month).",
     "Coverage": "Monthly outlet coverage and call productivity per sales officer × city (dated the first of the month).",
 }
-data = {"Date": date_df, "Area": area_df, "Sales Officer": sales_officer_df, "Distributor": distributor_df,
-        "Category": category_df, "Product": product_df, **facts}
 
 # ---------------------------------------------------------------------------
 # 4. Write TMDL
@@ -456,8 +349,8 @@ for name in data:
     print(f"  {name:<16} {len(data[name]):>6} rows, {len(measures.get(name, []))} measures")
 
 rel_lines = []
-for fact, column, dim_name in relationships:
-    key = dimensions[dim_name][1]
+for fact, column, dim_name in RELATIONSHIPS:
+    key = DIMENSION_KEYS[dim_name]
     rel_lines += [f"relationship '{fact} {column} to {dim_name}'",
                   f"\tfromColumn: {q(fact)}.{q(column)}",
                   f"\ttoColumn: {q(dim_name)}.{q(key)}", ""]
@@ -477,5 +370,5 @@ for fact, column, dim_name in relationships:
     "settings": {"qnaEnabled": True},
 }, indent=2) + "\n", encoding="utf-8")
 
-print(f"Wrote {len(data)} tables, {len(relationships)} relationships, "
+print(f"Wrote {len(data)} tables, {len(RELATIONSHIPS)} relationships, "
       f"{sum(len(v) for v in measures.values())} measures to {MODEL_DIR.name}/")

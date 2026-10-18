@@ -16,3 +16,6 @@ Thumbs.db
 
 # Temporary Excel lock files (created while the workbook is open)
 ~$*.xlsx
+
+# Parquet files exported for the Databricks load (tools/load_to_databricks.py)
+.databricks_load/
