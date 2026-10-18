@@ -1,0 +1,70 @@
+# FMCG Sales Power BI project
+
+Power BI report built as a PBIP project from code: Excel → (Databricks) → semantic model (TMDL) →
+report (PBIR), published to the owner's **My workspace**. Start by reading `docs/roadmap.md` (status,
+lessons learned) and `docs/fmcg_report_walkthrough.md` (how everything works).
+
+## How the owner wants to work
+
+- **Step by step, with explanations.** Explain what and why for one step, do only that step, show the
+  result, then stop and wait for "next". Never batch several steps or build ahead autonomously.
+- **Never `git commit` or `git push`.** Leave changes uncommitted, walk the owner through the diff, and
+  suggest a commit message. The owner commits.
+- Show uncommitted changes with `git status` / `git diff` after each step.
+- Update `docs/roadmap.md` at the end of each step.
+
+## Project facts
+
+| Item | Value |
+|---|---|
+| Power BI workspace | My workspace (personal). Power BI REST paths are `/myorg/datasets/{id}`, not `/groups/{id}/…` |
+| Semantic model | `FMCG_Sales`, id `07ea8c6c-fc63-4750-bdb0-0d0017bc40ad` |
+| Report | `FMCG_Sales`, id `28e2cc00-ca3f-489e-9274-bedd03a43650` |
+| Current data source | Azure Databricks: CLI profile `azure`, host `adb-7405618954475016.16.azuredatabricks.net`, warehouse `853d0914df399a3a`, tables in `e2e_dev.fmcg` |
+| Service credentials | Databricks personal access token (scope BI Tools), created 2026-10-18 with a 13-day lifetime |
+| Refresh schedule | Configured daily 06:00 Central, email on failure; currently switched **off** |
+| Fallback source | `build_semantic_model.py --source embedded` (data embedded in the model, no credentials) |
+
+`tools/.published.env` is git-ignored. On a new machine, recreate it with:
+
+```
+WORKSPACE_ID=961926b4-fab9-4ac7-962e-be4aafa23384
+SEMANTIC_MODEL_ID=07ea8c6c-fc63-4750-bdb0-0d0017bc40ad
+```
+
+## Running things
+
+All scripts run from the repo root (on Windows use `python` instead of `python3`):
+
+```
+uv run --no-project --with pandas --with openpyxl python -I tools/build_semantic_model.py   # --source databricks|embedded
+python3 -I tools/publish_model.py            # create/update model + refresh (5-15 min on shared capacity; run in background)
+uv run --no-project --with pandas --with openpyxl python -I tools/check_measures.py         # 37 checks, must all pass
+python3 -I tools/build_report.py && powerbi-report-author validate FMCG_Sales.Report
+python3 -I tools/publish_report.py
+uv run --no-project --with pandas --with openpyxl --with pyarrow python -I tools/load_to_databricks.py
+python3 -I tools/set_refresh_schedule.py     # turns the daily schedule on
+```
+
+Prerequisites: `uv`, Azure CLI signed in (`az login`, Power BI account), `npm install -g
+@microsoft/powerbi-report-authoring-cli`, Databricks CLI with profile `azure` (only for Databricks
+work), the Claude Code plugins `powerbi-authoring` and `databricks`.
+
+## Conventions and gotchas
+
+- Shared data shaping lives in `tools/fmcg_data.py`; Databricks/SQL tables use snake_case names
+  (`snake()`), the model keeps readable names and maps them through `sourceColumn`.
+- Generate PBIR with `tools/build_report.py` (stable visual IDs → clean diffs); validate after every
+  change. **The validator checks structure, not rendering**: test new kinds of PBIR settings one at a
+  time in the Service (a hand-written slicer default selection made the report hang while loading).
+- Display units must be number literals (`"1000000D"`); text values are silently ignored.
+- After republishing, the owner must click **Reset to default** in the report to drop remembered
+  slicer state.
+- DAX variable names must not match function names (`LastDate` broke a measure).
+- Never auto-select a Databricks profile; ask.
+
+## Next planned work
+
+**On-premises SQL Server as the source**, on a Windows PC: follow `docs/sqlserver_onprem_guide.md`.
+Still to write when that starts: `tools/load_to_sqlserver.py` and a `--source sqlserver` option in
+`tools/build_semantic_model.py` (mirroring `--source databricks`).
