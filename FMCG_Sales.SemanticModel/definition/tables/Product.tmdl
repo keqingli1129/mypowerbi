@@ -6,50 +6,51 @@ table Product
 		isKey
 		isHidden
 		summarizeBy: none
-		sourceColumn: SKU Code
+		sourceColumn: sku_code
 
 	column Brand
 		dataType: string
-		sourceColumn: Brand
+		sourceColumn: brand
 
 	column SKU
 		dataType: string
-		sourceColumn: SKU
+		sourceColumn: sku
 
 	column Pack
 		dataType: string
-		sourceColumn: Pack
+		sourceColumn: pack
 
 	column MRP
 		dataType: decimal
 		formatString: ₹#,##0.00
 		summarizeBy: none
-		sourceColumn: MRP
+		sourceColumn: mrp
 
 	column 'Units Per Case'
 		dataType: int64
 		summarizeBy: none
-		sourceColumn: Units Per Case
+		sourceColumn: units_per_case
 
 	column PTR
 		dataType: decimal
 		formatString: ₹#,##0.00
 		summarizeBy: none
-		sourceColumn: PTR
+		sourceColumn: ptr
 
 	column PTS
 		dataType: decimal
 		formatString: ₹#,##0.00
 		summarizeBy: none
-		sourceColumn: PTS
+		sourceColumn: pts
 
 	partition Product = m
 		mode: import
 		source =
 				let
-					// Rows are embedded as compressed JSON, so no external data source is needed
-					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("hZRNb9swDIb/ipCzEEi06I9jsZzWroc5ww5FD1qnVkbiD8QO+vdHUkanBksGOH4ZQXxEUqSfnjbt/Q9rzEZv7obBT+fT4NXdsnheIFF4eCMTFQtUuDXaacCaFAp6P+uVYK8SrBGENcLAwrCvdg0zHDYZA2jbl+iXyZPbo+8PIQy0tFoKjGEQiWIQc1ytXclqM0xxG+MSxiVMwymB0zWHU+XRONrUvnv/W33zsz9yPsmgjEzKSAglE0p+SLHICHiVgImAiQCNSUFAlQzIICXt25+Pc6f2gQn0VoCpEiju1kkpjLZSW2vLzL36h/vF6elQehDYAMzca9r3PbyewhxH9fXcvQRaEFWlMf2R/pEqNtyaRFGRFnkKzXWI3cIDl3ILilTqYEHXji/D/UVYbtDHrv91Vu3oJ64rycVFFHwRFcjZGrLmtFYCmGPfqTb6fhpHJiRLtf4lhkWanNMAaSsKY1vTD/EDArcgtk7FIBUKRZyqQV1NBif2AeL+3IVhGX/GbuFS7MdxiZOfl3CREWLqcbQyKxnD3WB8npOmSYE0HEedXYvFNCe9P6hdWMLpjXiCXW1l0+DK3FpY74YKwYbJMyr/R3JCckJyqV1pZhlUVDmIu7X1r953atfN8d3PkTmryY0rVca15T7nxt+A5z8=", BinaryEncoding.Base64), Compression.Deflate)),
-					#"Built Table" = Table.FromRows(#"Decoded Rows", {"SKU Code", "Brand", "SKU", "Pack", "MRP", "Units Per Case", "PTR", "PTS"}),
-					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"SKU Code", type text}, {"Brand", type text}, {"SKU", type text}, {"Pack", type text}, {"MRP", Currency.Type}, {"Units Per Case", Int64.Type}, {"PTR", Currency.Type}, {"PTS", Currency.Type}}, "en-US")
+					// Azure Databricks connector: warehouse -> catalog -> schema -> table
+					Source = Databricks.Catalogs(#"Databricks Host", #"Databricks HTTP Path", [Catalog = null, Database = null]),
+					Catalog = Source{[Name = #"Databricks Catalog", Kind = "Database"]}[Data],
+					Schema = Catalog{[Name = #"Databricks Schema", Kind = "Schema"]}[Data],
+					Table = Schema{[Name = "product", Kind = "Table"]}[Data]
 				in
-					#"Set Column Types"
+					Table

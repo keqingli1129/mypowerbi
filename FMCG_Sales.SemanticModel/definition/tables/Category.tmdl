@@ -4,15 +4,16 @@ table Category
 	column Category
 		dataType: string
 		isKey
-		sourceColumn: Category
+		sourceColumn: category
 
 	partition Category = m
 		mode: import
 		source =
 				let
-					// Rows are embedded as compressed JSON, so no external data source is needed
-					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("i45WckotSy1KTE8tVorViVZyy89PgbA88nNTFZwTi1LBvIDUouL8vMQcqEgsAA==", BinaryEncoding.Base64), Compression.Deflate)),
-					#"Built Table" = Table.FromRows(#"Decoded Rows", {"Category"}),
-					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"Category", type text}}, "en-US")
+					// Azure Databricks connector: warehouse -> catalog -> schema -> table
+					Source = Databricks.Catalogs(#"Databricks Host", #"Databricks HTTP Path", [Catalog = null, Database = null]),
+					Catalog = Source{[Name = #"Databricks Catalog", Kind = "Database"]}[Data],
+					Schema = Catalog{[Name = #"Databricks Schema", Kind = "Schema"]}[Data],
+					Table = Schema{[Name = "category", Kind = "Table"]}[Data]
 				in
-					#"Set Column Types"
+					Table

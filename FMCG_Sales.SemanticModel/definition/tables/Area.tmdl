@@ -3,16 +3,16 @@ table Area
 
 	column Zone
 		dataType: string
-		sourceColumn: Zone
+		sourceColumn: zone
 
 	column RSM
 		dataType: string
-		sourceColumn: RSM
+		sourceColumn: rsm
 
 	column ASM
 		dataType: string
 		isKey
-		sourceColumn: ASM
+		sourceColumn: asm
 
 	hierarchy 'Sales Hierarchy'
 
@@ -29,9 +29,10 @@ table Area
 		mode: import
 		source =
 				let
-					// Rows are embedded as compressed JSON, so no external data source is needed
-					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("fc/BCoMwDAbgVwk9+xITxxhDkQruIB7+YVhj1Y62Hnz71T6At/7JR5oMg7ojRFWoij8IRoKhh3HBpErt9lUiqEJQY3EBO2wxvahkwx7ZNs7Hs9WL9VhJw6Vw22YsQjWbeKEq5h8sdbJ9TVad27PSWDn90kB8Sq2XA/Q82F+gXmYcpHmajqzenE9IC5/1FlGWFJt0DOi1LxZ+kwuoYc/hpUGMahz/", BinaryEncoding.Base64), Compression.Deflate)),
-					#"Built Table" = Table.FromRows(#"Decoded Rows", {"Zone", "RSM", "ASM"}),
-					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"Zone", type text}, {"RSM", type text}, {"ASM", type text}}, "en-US")
+					// Azure Databricks connector: warehouse -> catalog -> schema -> table
+					Source = Databricks.Catalogs(#"Databricks Host", #"Databricks HTTP Path", [Catalog = null, Database = null]),
+					Catalog = Source{[Name = #"Databricks Catalog", Kind = "Database"]}[Data],
+					Schema = Catalog{[Name = #"Databricks Schema", Kind = "Schema"]}[Data],
+					Table = Schema{[Name = "area", Kind = "Table"]}[Data]
 				in
-					#"Set Column Types"
+					Table

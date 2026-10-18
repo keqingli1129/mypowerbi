@@ -25,57 +25,58 @@ table Coverage
 		dataType: dateTime
 		isHidden
 		summarizeBy: none
-		sourceColumn: Date
+		sourceColumn: date
 
 	column ASM
 		dataType: string
 		isHidden
 		summarizeBy: none
-		sourceColumn: ASM
+		sourceColumn: asm
 
 	column 'Sales Officer'
 		dataType: string
 		isHidden
 		summarizeBy: none
-		sourceColumn: Sales Officer
+		sourceColumn: sales_officer
 
 	column 'Total Outlets'
 		dataType: int64
 		isHidden
 		summarizeBy: none
-		sourceColumn: Total Outlets
+		sourceColumn: total_outlets
 
 	column 'Outlets Billed'
 		dataType: int64
 		isHidden
 		summarizeBy: none
-		sourceColumn: Outlets Billed
+		sourceColumn: outlets_billed
 
 	column 'Planned Calls'
 		dataType: int64
 		isHidden
 		summarizeBy: none
-		sourceColumn: Planned Calls
+		sourceColumn: planned_calls
 
 	column 'Productive Calls'
 		dataType: int64
 		isHidden
 		summarizeBy: none
-		sourceColumn: Productive Calls
+		sourceColumn: productive_calls
 
 	column 'Lines Per Bill'
 		dataType: decimal
 		isHidden
 		summarizeBy: none
-		sourceColumn: Lines Per Bill
+		sourceColumn: lines_per_bill
 
 	partition Coverage = m
 		mode: import
 		source =
 				let
-					// Rows are embedded as compressed JSON, so no external data source is needed
-					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("lVzLjhw3EvyVhs61At+Poxc+7NrwwpAWBhYLH8qrhmcsacYYaQzo7zci2S0Vq9gkBxAgzIEsPpKRkZGZ/d//vjLK+L8pjX+vllffPfyxfrg//XS++7zizzePd/efT2/v1qeP+NMavRhnlujC4o1ZzGv/69Kf4O3zw/2H03/Wd+tfrxbj06JTXmL2i3N2sS8db92is15CSvg+1vDaHMZ/fz7/ub4/vb1/+P0Of/5jffrz6Xz+fPpxfX7CDlTADtISDL5uPVYQRzP8tN6dP92dflgffr9/hxmwd4M1RKcWGzVmUIcZ/nX/6W49/fj84f369HDPTX3EKX6PaT4+v8ecJvnFaL/E6BefOYcdz/Hz0/ppfXf64fHT3T03knGUFkdpFx/j4maW8ePzw/qBtylriIuOdklJLUEpTJAPE7xZ33Prf79bP3/Gnz/c//7Av39eP58/vMLn/aK5C+cWJ7uIoxm++/D4/vTLWYzJBIUFpCViJzZYLCAchv/8dP9lPf3zy/mJq79/Wh+wnY8rLzJ4MYdEc1Lcv3nJ6KjwfbcEfN/6tiFWo98+P8k+1t+esXLjZPMJm/ap/e1f7v9Yv5zenN+9+8KbWP86nx9Ob9bHV4tT+J42S4AZeux9PPrfd48f10+wwP89/sZjx9cxPlmM9VjBa30Y/9PjMyxuPX2/fuKpPz2sv53enh94bGkxeAMhczCOsHFntwfrjFPDecNkvPITX36z/nV/PXOnYSI2LoH/G9730ejfrg+fH3nO57vz0yqP7+Hxj9Pb9e7x8fL8ce8Juw7BN2/tMANM7xPsH6/vPREMT8bgDGLGtZlU79/MQGCImCAuyWECb+rnb8YQpgF92uHRJD4aQmh+2Xh5dKE8WVhx6/t9CDQAXoJoyoBBzFSBj5mBQAP41XixwRqcAWyhsYYhBDq+IV6EWbyOWIUbz1FDoMPijc8wBVwDrsJtzcFMQKDNmMByH3pxKTQn6EOgwzu0GiiEGbzlbZjRDFsItNwBwIu+xMEgzBYCzRDE4AENP44LdfBlrvHx26NNCIsG9EWAGS/RvU790TUEYuU6AsTwfadwfI3ruw2BdFxaAX4Tbg2gYhsH34NAp/GK8QATHmKIufkIOhCIO1MciKXb1Nz47cEeZ46bili9FbfrB4O3EGiCxtPDaHAoB99bAaiZgUBrufOL69GxdppmCgINkFODNSRMEzzf/2b/dgYCceIGLCgSQMSBhdEEFYRZh/GYI4D9uJRq25kZDwdicImRTgQPsIIfOwWBdODkPnD/wfvmCvoQSJuXPYAFO8c9xMMMIwi0oA6CX2TCTtevwM6xQOEx8IbwiDaauSkqFphJowLsKcpd2sY++hAoZ+mBYXjTDp61tYQeBOIKDGAgEsCyqnmsHYIYAhIt1xCFx1UQOB6N7xkYUyIN1ztfbocQSAauE7A/Avtt7UftCAJ54cIjEh6yC81H1INA8Z+4tEQQFvp+PPbbKAbYI4pEui0cnW/YfwcCMRi+LtLz4wxMw2Q6EAjQ4NOLZN2Z6HPcdx8CHb9p/MV5xJpH2ikIFCoKBE+wVxdDTT7cDASSucEFRjwdF3iAdjRBHcjy6dsSADo8nooFzozHzetAN4Sb97sYwk1BYGIgjNAPduTpxLf34KYCYbg/gUCsw9GKt6/HTUIgYkCTSSOyuILWOY4gkAiGKZLHRpKuAcRNQCDjMbqzBEfgGdQ3jKEPgZbOAM4oYAkOrKICUTeGQJeEBQoZt7GGITcOhGGKYL/JZAEC2zCFzmg8R6thBnhQhYnF/ugaAgGgWrQQvCMJo49m3IFAfNcAiQKQyIoPVYPROwgEiTGYQ0IpH2ov7gYoRhwyCvEH/I+3+mWDhQExEAUEhbzz3G4EgTZrER8SDT+7moC5qUA4MITD4rF7l/3cDLtAWPHqsqgIPu78h59igVFgKDLyEvcXRhPsWJwpNNReH41/2XhcmgHtiZpaoK61QD8FgZoSGuwnMPwztQLmpyCQagrOIZIF6tQ8gyEEwoUZQ0cON+JT8yJGEEh3DiQVEhd2YaSfCYR5/rpIM06cgT1MMIJAXyIyaoGU5rYW6cdaIK+CZBwg5mxoHkKHx1mYEkh0IiOhJrEFkvFo+GAdgpAhZ1yN/36sBVILwcrhT0tAeDSiHgTi5gBdfASej7lhxP1AGF4cbCpQiA47/+lHEIinTwoZaXkm1Ng/HMxTw8DE5ye8XQ8GVyyQ/EczkVCM3jQ+PQiEqd3w8RJ+yEAa3x8FwjQbxpEkH4b0fzNFmIFA3jkdEBxYsZw8mqCCMKeoHsGNOASxeRdEToxnCkGDsSQE1C7smHiYSocgaKMnCFQzKSdtkSNMaYFcA3V4QkfMtf2HOQgUTVMxrZPFnVXhSJiCQAPypumNGcYxx7MFkDATCIMFCqOmU0aEUbHZMAWBcMqFzoCE2dw8yx4EwgI1SGTC6h3V6YY19kJZyqlhCfSmRtXK0nC0RQghvhzfLgAa+6MrCHQ8bzzi5BjKppqNhBEEMpcmgSwF5biD/jDBAg11TCNrp/G0HkEnEKYCrC95IP3CwThz0QKZihD5OA0GVxCIEFrWDQ7ETETr4QwgMKmSy6AGp9rwMdQCtaSDEiFQovGN/4kTEChiYkT0QdsTLdCPJqghzJVUQiQN3UvwM+OpQwPEAs7ChVDbfZyCQMMwVkn8WFT0MJphzwK9lTSCSDGMZRozDNMhGE8KE7CHosa78Rw7CCQSeyuyaiHEejxFDYERCISQAOfpzS4jHKcywpkYFktElvzMDFsIdLqE8mIMDEi3DyqOQIzCurbkFFmKC142mooOfXEEl/H0io2XcBsCCb2amhhA3Hvd3HgHAsHeNC69KFqu+Qh6EChcyDEL5S8SwNEAb6JYycXg2FKpRWhZXieX4sX1Cn6Sy229ZhxrgcVjxq9hx3HfAwg0JewQ/dfsdLA4FwjrIiFHDPfK1n43zUDgpRoggAla72ofkiYhMFF+j8Im7XgBu4wwbA9rCGCANu+YS5rTAmECiEIiebSKzR0MWCALe0ClA4WAaOsILM1mhFVhkkzqKVMDcZqDQAQkImqILqKbR9EPhKWqxEh5hE2puY8BC0QoXZwygNzm5i56WiDFSArLgAIvYY07DO+AGEDA+KIlSHK+YUo9CPRSmBFZ2kEgG317Fwjnb/lkQHFrdAcCPRUtBsL2Ek7awegdBFJFYQjBPFpyNXynGRYYL1GQsMA8P1jAm9w1ZXG7FftNQwhUfLwsabEiQ/rGvgcQCOA08NZMRXibmjY/YoF4Ltox/nIiBFREMs9AIJwXRZCInXgpzMmjCXYQ5soCyIP3As7EeAm9mEkFn/ZK1VpgnoNAcGnYPbk8S5sq/SpPQSATW8mJoEoYrMK/PKkFsrpAJYE/IkHrHIcZYXpEXeREl2tvkqcywkqqSiJpjOiyxwkGEOguiiYRWEqkzGiGCgKZmYIxB9JgMSZ3GN4JhFNJSZALeQq7DVu+PZp6mgihTGbn3WPKQwhkcZnWomo5ZZrf7kAg/Xi6FAOxPK9hgn0WmETLYV1XKcc8rr1D5LIIicnT+mytnwwHM5eN4C+KirkLAvMQAqOW0EPCDrWriMtT6RCmEljNQv2Ia2mc3FALzEKBWA3rKcpuXq9WUxDoyt0DwrwzVTXAjQl2gSz3kIS6CJPcPJqZ8aIEsxaWGriUYcTD+EEgTC0gqKJfSXG1Hc2wD4RTlHA6KUZBoYKO6wxDCIQNkYFFfbWGNJ5jXxqtSjzOAltXZ2VuTlGxQCCAiGnYC7P7W4u8TjAoiiEKgT8mEKFga2noxgx1RviCwfAFDExd4yB7gfCFjOMts0J9603Ho5mOII9LubBA1zCk2xAoAZBRBUB3xcnX0Z10CEshTBIV10lRaB6M3mmBwYgMkNKlPGQDRNfxN1HMMR0deV/A311FzXCwFF8RAllNFnTz+XcywhLGkvUTwFTFIa+j+xBIBVXbUoxRisrzeIZdIMxycBajUkJWdS5Az3SHmBhKSih60eMqANEzLNCK/hSUl7q+ym5nukM4ngBmdclobiFUz9UFmpKG5LtztrmDEQRmEUSohTtf1zbqye4QqQ9gOEICZGP9Aie7Q6S0EAhGEW6nZump7hBEEtQjpcJgV9+op7pDyKa1LZX2fqdv63F3iIjrwmMBZCHWID7R3+FLiQUlVa2qYHQ8WsRYVjYpJ3m1yo+Nu0NIpaQtxgobaq28lxG2UtZAFcR70zz4flGMkRYtycuKpnZ8RLdjWUT/ImWxJi7WCc3hYIF+KcgOYsItm+tBoBMmmCjiB9c8tQELpPJC6YTNZTsVS891h0g1rKICnqSkrbLZqe4QWi3rcd3V9frRBLvuEDpfLMBc0ynxReMlksf3IzOxSlexk57rDklk46rUstndy5nrDmFKyF/imLhzA7PdISwsY2MaXz7naZzDSAt0pVdQInrJyujxFBUEkgXSKbO7LLTXMAiEWWOWctkF+1y2L2LcHSIZQskrgUCyxKCxgA6IaVe8IcsaVa1HTIz2lwozloYlUzOSYXeIMHAYkAQCuq4J18PuEBnNHs3gS519Y9/dQFgqw5KwKb/Ly2ozZIFWiEQpiDQvGyz6c+LzPSY09LA7RPoiWBGHE2MYW0G3mYPAWBoTRfywTYsZssBU0qFfY5/r/sNcj7DR6VtGOG97hMNUj6/U0VELZFkzE4EvHC9JJcesvJVn+00GCZM9wkaxowFekEIKJY2vABYme4SpfjGhJ+SlqiwM8z3CkhRkgWYouujX9xtme4Slw1YMigW+ahPHhskeYbYKBltolIubqCZM9gjLW9bsccFtMknYWMKIBcIjSYWTlEYfrXGgBUYWeCbRI1zDFHocMgsDparELpXWJfYa5LykwkXKjbq58p4WmCSvyGQKC7xd4+D7RTG6FBPBfTipSjx+vZMOIRUzxfFJRti8YDAxg7Qfp+eZz2+Y7W0IpGaifanC8m6r3obJHmEJIrUVFkgd7FsAFmZ7hA1bknBtSV0zwpv9z7BAEWCkM0hfqjrTaIJdg5yW2+d452INYTMsMF4aCign6K0IEyZ7hEsqkNUE4RL+pdEMewjEHqhnMvpy0mJnDzOM6wLLXfL18zcOWvuYKYqJlx7hrGssn2KBUliIaE5Rj9z2KYfJHmH+2IOAKGhcKXDLoxnqdEiWKjMSEmt8c3gHxOjLpMFGS0WOaVxkr0e4ZFUjWZRoga4/ehcIq1JWwIiSoXTj2x0IJI+w19/ZcDWQmJkGOSWKGIsa6nA0jNt86TW1DZIKt3FbUTMzmG6H2okqRXVuOLhigSSgrKGiz5fs2fHMJ7RAw3RMkhDEN3Y+gECW0spvTNDqWQuxNTo7+0sx6sICmaEeT1BDoGRCWZWjpa6vcgR2hkVmYcMSgYRtbXeY7BEuXpDxI+tKbW37dq5BzkoMF6Q7StUWPNsjTCh3pbCm6MpmPMe+KCZINiOxyzSr5kb6DXIUsfAQAtNabFhsnOUAAj3jEp6lkaR0awnddAi7BVhaEiS3VgHJRI8wZeWiC3lJqscXjC7VVezts9J8PxxdB8IwQcuEPhkgE+uNlXcCYeoHJkiPsPjRxiPqQqA0OORSCuRU7YOHbb7s70qqZPHFbZn5wYUBeSnIkLC2sfJORhh3LCkodW3tOq571CDHbGqWshox28bTG0HgVYpjk8nebNxUIHxxQHgyNu+CJzfTHRJKMozSj90WVM2O9yLCsBg36B0TnusRFh08SK+2q6rhwmSPsJQUs8VGXZ1wOswwlxHO5fcqbGjuY5QOgSuTcIrt4tIurcdT1A1yRnqWmFKtS+PCZI8wq1TFoXl22uTaoY17hKlkapb4Mr2vt92SYaLLl73+0twSizesGMG4R5i/t8GEBuUwlrhsH/NEj7AplVU0IK2aJtCBQHY3S48FVp12odREjzBDb+kO10mazE1j/G0IlEKCgp/W+SYEdH4sqxRiUXxgf6xvPJ4eBJZ6SHZWS5NW48xHvxRTWgMjU9o61hDoJotiSiFB+bEsXR/eVI+wycLjpce3UpHDXI8vdWtvioji1MwCdiwwll/L4e8V+l0EMtcj7JkRZq82hZRdBOTnfikmSyySmMzLoWaikz3C0h4bSjBtJS8VxnPsA2Er4ZQ0qJhYG5SfqgvkPnJ5SS42z3L0Y1lOdHnJaytduxM/8UsxUSqrWdxRqszMYXgHxPgcWB1HaZysrHENvR7hXGrU2FqnTY3e4x5h4TNeCusYzre+3YFAU+S4xNp+r5rf7vcIq1IZxs6QZGo1adTmy1rqIoJqiYL8SwZLAguPJzJ4MbF2u8MeYRuCVMUFhoBJ1T53rkeYxdXkzvyxTymrseMZdukQVtRLg6yWH2qpppjpEWZ3oWZWnD9WZXIdBM70+FpfMrpSGmRqDWyqx1hJIMwLZJm0b2xg9DMJsF57SYdIabQfzXBIh2QpDAqXH1qo/Ohsj3BmgWYq/Vlul9aZ6xEWb0RGn8sPDVTeKEyxwGKRUuYupf7Huxw1yDlRNAUCU6zf8rhHWOrcuXqG8Tk1F9D7pZgkQJZykB8Ma11kr7fkogUyr6Zjjd5hHAgrMWVxP8JnjqM7WqD8XpuSJnNvXfMVdlmgKuVQUfuLnH38eqcoxkghU2I6xO1yMcPBsfAHaa0S+cANBlcQyOfGglo2B0pv6nHdE1qgvvwyUNWVEGZ7hKUv2peqZKdLHuzX/wM=", BinaryEncoding.Base64), Compression.Deflate)),
-					#"Built Table" = Table.FromRows(#"Decoded Rows", {"Date", "ASM", "Sales Officer", "Total Outlets", "Outlets Billed", "Planned Calls", "Productive Calls", "Lines Per Bill"}),
-					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"Date", type date}, {"ASM", type text}, {"Sales Officer", type text}, {"Total Outlets", Int64.Type}, {"Outlets Billed", Int64.Type}, {"Planned Calls", Int64.Type}, {"Productive Calls", Int64.Type}, {"Lines Per Bill", Currency.Type}}, "en-US")
+					// Azure Databricks connector: warehouse -> catalog -> schema -> table
+					Source = Databricks.Catalogs(#"Databricks Host", #"Databricks HTTP Path", [Catalog = null, Database = null]),
+					Catalog = Source{[Name = #"Databricks Catalog", Kind = "Database"]}[Data],
+					Schema = Catalog{[Name = #"Databricks Schema", Kind = "Schema"]}[Data],
+					Table = Schema{[Name = "coverage", Kind = "Table"]}[Data]
 				in
-					#"Set Column Types"
+					Table

@@ -13,6 +13,13 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parent.parent
 XLSX = ROOT / "data" / "FMCG_Sales_Data_Suraj_Consumer.xlsx"
 
+# Where the tables live in Databricks (Step 10): azure profile, Serverless Starter Warehouse
+DATABRICKS_PROFILE = "azure"
+DATABRICKS_HOST = "adb-7405618954475016.16.azuredatabricks.net"
+DATABRICKS_WAREHOUSE_ID = "853d0914df399a3a"
+DATABRICKS_HTTP_PATH = f"/sql/1.0/warehouses/{DATABRICKS_WAREHOUSE_ID}"
+DATABRICKS_CATALOG, DATABRICKS_SCHEMA = "e2e_dev", "fmcg"
+
 # Dimension table -> its key column
 DIMENSION_KEYS = {"Date": "Date", "Area": "ASM", "Sales Officer": "Sales Officer",
                   "Distributor": "Distributor Code", "Category": "Category", "Product": "SKU Code"}

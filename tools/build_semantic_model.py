@@ -1,13 +1,16 @@
-"""Build the FMCG_Sales semantic model (TMDL files) from the Excel workbook.
+"""Build the FMCG_Sales semantic model (TMDL files).
 
-The rows of every table are embedded in its Power Query (M) partition as
-deflate-compressed, base64-encoded JSON, so the published model can refresh in
-the Power BI Service without any data source credentials or gateway.
+Two data sources for the same model (only the table partitions and sourceColumn names differ):
+  --source databricks (default)  partitions read the Delta tables in Databricks (Step 10);
+                                 the Service needs Databricks credentials to refresh
+  --source embedded              rows embedded in each partition as compressed JSON (Steps 4-9);
+                                 refreshes without any credentials or gateway
 
 Run from the project root:
-    uv run --no-project --with pandas --with openpyxl python -I tools/build_semantic_model.py
+    uv run --no-project --with pandas --with openpyxl python -I tools/build_semantic_model.py [--source embedded]
 """
 
+import argparse
 import base64
 import json
 import sys
@@ -17,7 +20,12 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fmcg_data import DIMENSION_KEYS, RELATIONSHIPS, load_tables  # noqa: E402
+from fmcg_data import (DATABRICKS_CATALOG, DATABRICKS_HOST, DATABRICKS_HTTP_PATH,  # noqa: E402
+                       DATABRICKS_SCHEMA, DIMENSION_KEYS, RELATIONSHIPS, load_tables, snake)
+
+parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument("--source", choices=["databricks", "embedded"], default="databricks")
+SOURCE = parser.parse_args().source
 
 ROOT = Path(__file__).resolve().parent.parent
 MODEL_DIR = ROOT / "FMCG_Sales.SemanticModel"
@@ -300,6 +308,20 @@ def embedded_rows(df, cols):
     ]
 
 
+def databricks_rows(name):
+    """M expression that reads the table from Databricks, using the model's connection parameters."""
+    return [
+        "let",
+        "\t// Azure Databricks connector: warehouse -> catalog -> schema -> table",
+        '\tSource = Databricks.Catalogs(#"Databricks Host", #"Databricks HTTP Path", [Catalog = null, Database = null]),',
+        '\tCatalog = Source{[Name = #"Databricks Catalog", Kind = "Database"]}[Data],',
+        '\tSchema = Catalog{[Name = #"Databricks Schema", Kind = "Schema"]}[Data],',
+        f'\tTable = Schema{{[Name = "{snake(name)}", Kind = "Table"]}}[Data]',
+        "in",
+        "\tTable",
+    ]
+
+
 def table_tmdl(name):
     lines = [f"/// {descriptions[name]}", f"table {q(name)}"]
     if name == "Date":
@@ -331,13 +353,15 @@ def table_tmdl(name):
             lines.append(f"\t\tdataCategory: {opt['category']}")
         if opt.get("sort_by"):
             lines.append(f"\t\tsortByColumn: {q(opt['sort_by'])}")
-        lines += [f"\t\tsourceColumn: {col}", ""]
+        # Databricks columns are snake_case (Delta names can't contain spaces)
+        lines += [f"\t\tsourceColumn: {snake(col) if SOURCE == 'databricks' else col}", ""]
     if name == "Area":
         lines += ["\thierarchy 'Sales Hierarchy'", ""]
         for level in ["Zone", "RSM", "ASM"]:
             lines += [f"\t\tlevel {level}", f"\t\t\tcolumn: {level}", ""]
     lines += [f"\tpartition {q(name)} = m", "\t\tmode: import", "\t\tsource ="]
-    lines += [f"\t\t\t\t{line}" for line in embedded_rows(data[name], columns[name])]
+    rows = databricks_rows(name) if SOURCE == "databricks" else embedded_rows(data[name], columns[name])
+    lines += [f"\t\t\t\t{line}" for line in rows]
     return "\n".join(lines) + "\n"
 
 
@@ -361,6 +385,17 @@ for fact, column, dim_name in RELATIONSHIPS:
      "\tsourceQueryCulture: en-US", "\tdiscourageImplicitMeasures", ""]
     + [f"ref table {q(name)}" for name in data]) + "\n", encoding="utf-8")
 
+# Connection parameters (Databricks only): one place to change warehouse, catalog or schema
+expressions = DEF_DIR / "expressions.tmdl"
+if SOURCE == "databricks":
+    params = {"Databricks Host": DATABRICKS_HOST, "Databricks HTTP Path": DATABRICKS_HTTP_PATH,
+              "Databricks Catalog": DATABRICKS_CATALOG, "Databricks Schema": DATABRICKS_SCHEMA}
+    expressions.write_text("\n".join(
+        f'expression {q(k)} = "{v}" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]\n'
+        for k, v in params.items()), encoding="utf-8")
+else:
+    expressions.unlink(missing_ok=True)
+
 (DEF_DIR / "database.tmdl").write_text(
     "database FMCG_Sales\n\tcompatibilityLevel: 1702\n\tcompatibilityMode: powerBI\n", encoding="utf-8")
 
@@ -370,5 +405,5 @@ for fact, column, dim_name in RELATIONSHIPS:
     "settings": {"qnaEnabled": True},
 }, indent=2) + "\n", encoding="utf-8")
 
-print(f"Wrote {len(data)} tables, {len(RELATIONSHIPS)} relationships, "
+print(f"Source: {SOURCE}. Wrote {len(data)} tables, {len(RELATIONSHIPS)} relationships, "
       f"{sum(len(v) for v in measures.values())} measures to {MODEL_DIR.name}/")

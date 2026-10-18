@@ -4,19 +4,20 @@ table 'Sales Officer'
 	column 'Sales Officer'
 		dataType: string
 		isKey
-		sourceColumn: Sales Officer
+		sourceColumn: sales_officer
 
 	column ASM
 		dataType: string
-		sourceColumn: ASM
+		sourceColumn: asm
 
 	partition 'Sales Officer' = m
 		mode: import
 		source =
 				let
-					// Rows are embedded as compressed JSON, so no external data source is needed
-					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("dZHBboNADER/xeKcn0iVQwsiiqCKVEU5TIqVdQBvtOwi8fc1IPWQ0uvOePw8e7lk+863dObQI9tlFVoeHL05xJhdd6b2Eulgb31qnRmOMjhQkboWQWW1BMWNalaTS59sAHTAsGgWNJjTEto5voZGP+ez44DF8Y7wDMyRCqRglgPzEy3Vone3GHK568x0QuRuC7GQADWkHvP8KcgE+pg4rGJSdFQ7/ANfws1pOfQuzdb6EuofVMN5v33AESOzUoVZP8sDE1XcNNMingIGNJTbjGwDVBjlF/61vso7q9/o19/Z6wOdUMkurrvrpNLRFxqM23JYqsIt/W3m0/keg13+7W+v5Ncf", BinaryEncoding.Base64), Compression.Deflate)),
-					#"Built Table" = Table.FromRows(#"Decoded Rows", {"Sales Officer", "ASM"}),
-					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"Sales Officer", type text}, {"ASM", type text}}, "en-US")
+					// Azure Databricks connector: warehouse -> catalog -> schema -> table
+					Source = Databricks.Catalogs(#"Databricks Host", #"Databricks HTTP Path", [Catalog = null, Database = null]),
+					Catalog = Source{[Name = #"Databricks Catalog", Kind = "Database"]}[Data],
+					Schema = Catalog{[Name = #"Databricks Schema", Kind = "Schema"]}[Data],
+					Table = Schema{[Name = "sales_officer", Kind = "Table"]}[Data]
 				in
-					#"Set Column Types"
+					Table

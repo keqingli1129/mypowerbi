@@ -7,51 +7,52 @@ table Date
 		isKey
 		formatString: dd mmm yyyy
 		summarizeBy: none
-		sourceColumn: Date
+		sourceColumn: date
 
 	column Year
 		dataType: int64
 		formatString: 0
 		summarizeBy: none
-		sourceColumn: Year
+		sourceColumn: year
 
 	column 'Month Number'
 		dataType: int64
 		isHidden
 		summarizeBy: none
-		sourceColumn: Month Number
+		sourceColumn: month_number
 
 	column 'Year Month Number'
 		dataType: int64
 		isHidden
 		summarizeBy: none
-		sourceColumn: Year Month Number
+		sourceColumn: year_month_number
 
 	column 'Month Name'
 		dataType: string
 		sortByColumn: 'Year Month Number'
-		sourceColumn: Month Name
+		sourceColumn: month_name
 
 	column Month
 		dataType: string
 		sortByColumn: 'Month Number'
-		sourceColumn: Month
+		sourceColumn: month
 
 	column Quarter
 		dataType: string
-		sourceColumn: Quarter
+		sourceColumn: quarter
 
 	column 'Financial Year'
 		dataType: string
-		sourceColumn: Financial Year
+		sourceColumn: financial_year
 
 	partition Date = m
 		mode: import
 		source =
 				let
-					// Rows are embedded as compressed JSON, so no external data source is needed
-					#"Decoded Rows" = Json.Document(Binary.Decompress(Binary.FromText("pdxNa2TXGYXRvxJqXAbtfe7n0BAyMCQhZBSMB45pPDGOCemA/31KXVFdGckI7oJGdRB6RlqwQQ3vt99e+tT5q6fc/l2uz+9rvnw85Xr55vuf//D8vnx53r7+7fYzlz/94/a96avbt7+7vspr+bB8sny2fLF8tXyzfKc8T5abupi6mLqYupi6mLqYupi6mLqaupq6mrqaupq6mrqaupq6mrqaumHqhqjrMdC957394Kd/vuS35wd5LR+WT5bPli+Wr5Zvlu+UPwb6ZG7qYupi6mLqYupi6mLqYupi6mrqaupq6mrqaupq6mrqauoq6saxceOej+vlz9//+yW/PT/Ia/mwfLJ8tnyxfLV8s3yn/LFxJ3NTF1MXUxdTF1MXUxdTF1MXU1dTV1NXU1dTV1NXU1dTV1NXU1dTN0zdEHXTMdDTPZ+ul69/eeS353Pel3x+/k39Jq/lw/LJ8tnyxfLV8s3ynfLHQJ/MTV1MXUxdTF1MXUxdTF1MXUxdTV1NXU1dTV1NXU1dTV1NXU1dTd0QdfOxsPM9n59X+ddjoH/9IK/lw/LJ8tnyxfLV8s3ynfLHwp7MTV1MXUxdTF1MXUxdTF1MXUxdTV1NXU1dTV1NXU1dTV1NXU1dTd0wdUPULcdAL/d8uV6++Xz8N+7nnz/Ia/mwfLJ8tnyxfLV8s3yn/DHQJ3NTF1MXUxdTF1MXUxdTF1MXU1dTV1NXU1dTV1NXU1dTV1NXU1dTN0Tdeizses/X5+anI//pOR+/n9fyYflk+Wz5Yvlq+Wb5TvljYU/mpi6mLqYupi6mLqYupi6mLqaupq6mrqaupq6mrqaupq6mrqaupm6YuiHqtmOgt3u+XS9ff/7x8Sfuzz9+kNfyYflk+Wz5Yvlq+Wb5TvljoE/mpi6mLqYupi6mLqYupi6mLqaupq6mrqaupq6mrqaupq6mrqaupm6YuiHq9mOg93u+Xy9///TLS357fpDX8mH5ZPls+WL5avlm+U75Y6BP5qYupi6mLqYupi6mLqYupi6mrqaupq6mrqaupq6mrqaupq6mrqZugLo8vTqX8fTl8/Zx+esP/3npb8/nfvr9vtgP7CfsZ+wX7FfsN+x364+7GSd79Bf0F/QX9Bf0F/QX9Bf0F/RX9Ff0V/RX9Ff0V/RX9Ff0V/RX9DfQ3yB/r89d3a9x3D4uf/nXf1/62/ODvtgP7CfsZ+wX7FfsN+x364/9Ptmjv6C/oL+gv6C/oL+gv6C/oL+iv6K/or+iv6K/or+iv6K/or+iv0H+Xl2zyv1SyO3j8sdPP7z0t+cHfbEf2E/Yz9gv2K/Yb9jv1h/7e7JHf0F/QX9Bf0F/QX9Bf0F/QX9Ff0V/RX9Ff0V/RX9Ff0V/RX9FfwP9jfP+llfnopf7Mcvl1THL5Z1jlm/zWj4snyyfLV8sXy3fLN8p//9sn85NXUxdTF1MXUxdTF1MXUxdTF1NXU1dTV1NXU1dTV1NXU1dTV1N3TB1Q9T1GOje8+MS5/LOJc63eS0flk+Wz5Yvlq+Wb5bvlD8G+mRu6mLqYupi6mLqYupi6mLqYupq6mrqaupq6mrqaupq6mrqKurGsXHjnh/HLJd3jlm+zWv5sHyyfLZ8sXy1fLN8p/yxcSdzUxdTF1MXUxdTF1MXUxdTF1NXU1dTV1NXU1dTV1NXU1dTV1NXUzdM3RB10zHQ0z0/bmEu79zC/HL15Dd5LR+WT5bPli+Wr5Zvlu+UPwb6ZG7qYupi6mLqYupi6mLqYupi6mrqaupq6mrqaupq6mrqaupq6mrqhqibj4Wd7/lxzHJ555jl27yWD8sny2fLF8tXyzfLd8ofC3syN3UxdTF1MXUxdTF1MXUxdTF1NXU1dTV1NXU1dTV1NXU1dTV1NXXD1A1RtxwDvdzz4xbm8s4tzLd5LR+WT5bPli+Wr5Zvlu+UPwb6ZG7qYupi6mLqYupi6mLqYupi6mrqaupq6mrqaupq6mrqaupq6mrqxgl13/0P", BinaryEncoding.Base64), Compression.Deflate)),
-					#"Built Table" = Table.FromRows(#"Decoded Rows", {"Date", "Year", "Month Number", "Year Month Number", "Month Name", "Month", "Quarter", "Financial Year"}),
-					#"Set Column Types" = Table.TransformColumnTypes(#"Built Table", {{"Date", type date}, {"Year", Int64.Type}, {"Month Number", Int64.Type}, {"Year Month Number", Int64.Type}, {"Month Name", type text}, {"Month", type text}, {"Quarter", type text}, {"Financial Year", type text}}, "en-US")
+					// Azure Databricks connector: warehouse -> catalog -> schema -> table
+					Source = Databricks.Catalogs(#"Databricks Host", #"Databricks HTTP Path", [Catalog = null, Database = null]),
+					Catalog = Source{[Name = #"Databricks Catalog", Kind = "Database"]}[Data],
+					Schema = Catalog{[Name = #"Databricks Schema", Kind = "Schema"]}[Data],
+					Table = Schema{[Name = "date", Kind = "Table"]}[Data]
 				in
-					#"Set Column Types"
+					Table

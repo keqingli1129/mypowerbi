@@ -19,11 +19,11 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from fmcg_data import ROOT, load_tables, snake  # noqa: E402
+from fmcg_data import (DATABRICKS_CATALOG as CATALOG, DATABRICKS_PROFILE as PROFILE,  # noqa: E402
+                       DATABRICKS_SCHEMA as SCHEMA, DATABRICKS_WAREHOUSE_ID as WAREHOUSE_ID,
+                       ROOT, load_tables, snake)
 
-PROFILE = "azure"                    # Databricks CLI profile (chosen in Step 10a)
-WAREHOUSE_ID = "853d0914df399a3a"    # Serverless Starter Warehouse
-CATALOG, SCHEMA, VOLUME = "e2e_dev", "fmcg", "raw"
+VOLUME = "raw"
 LOCAL_DIR = ROOT / ".databricks_load"  # Parquet files, git-ignored
 
 
