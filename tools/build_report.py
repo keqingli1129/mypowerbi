@@ -54,6 +54,14 @@ def literal(value):
     return {"expr": {"Literal": {"Value": text}}}
 
 
+def display_units(units):
+    """Display units must be a number literal ("1000000D"), not text; text is silently ignored."""
+    return {"expr": {"Literal": {"Value": f"{units}D"}}}
+
+
+MILLIONS = display_units(1000000)
+
+
 def color(hex_code):
     return {"solid": {"color": literal(hex_code)}}
 
@@ -197,6 +205,76 @@ def kpi_tile(key, x, y, w, name, value_field, context_field, accent):
     return [(f"{key}.value", value_card), (f"{key}.context", context_card), (f"{key}.bar", accent_bar)]
 
 
+def chart_container(title, alt_text):
+    """White bordered card around a chart (from the theme), with a title and alt text for screen readers."""
+    return {
+        "title": [props(show=True, text=title)],
+        "general": [props(altText=alt_text)],
+    }
+
+
+def query_ref(field):
+    expr = next(iter(field.values()))
+    return f"{expr['Expression']['SourceRef']['Entity']}.{expr['Property']}"
+
+
+def trend_chart(key, x, y, w, h, category, series):
+    """Line chart with one line per measure; series = [(field, display name, color, dashed)]."""
+    data_point, line_styles = [], []
+    for field, _, hex_code, dashed in series:
+        selector = {"selector": {"metadata": query_ref(field)}}   # applies to this measure's line only
+        data_point.append({**props(fill=color(hex_code)), **selector})
+        line_styles.append({**props(lineStyle="dashed" if dashed else "solid",
+                                    strokeWidth=2.0 if dashed else 3.0), **selector})
+    return key, {
+        "$schema": VISUAL_SCHEMA,
+        "name": visual_id(key),
+        "position": {"x": x, "y": y, "z": 4000, "width": w, "height": h, "tabOrder": 3000},
+        "visual": {
+            "visualType": "lineChart",
+            "query": {"queryState": {
+                "Category": {"projections": [projection(category)]},
+                "Y": {"projections": [projection(f, name) for f, name, _, _ in series]},
+            }},
+            "objects": {
+                "dataPoint": data_point,
+                "lineStyles": line_styles,
+                "legend": [props(show=True, position="Top", fontSize=10.0)],
+                "valueAxis": [props(show=True, labelDisplayUnits=MILLIONS)],
+            },
+            "visualContainerObjects": chart_container(
+                "Monthly sell-in vs sell-out vs target",
+                "Line chart of monthly primary sales, secondary sales and primary target"),
+        },
+    }
+
+
+def ranked_bar_chart(key, x, y, w, h, category, value, value_name, color_measure, title, alt_text):
+    """Horizontal bars sorted lowest first; each bar colored by a color measure (red/green)."""
+    return key, {
+        "$schema": VISUAL_SCHEMA,
+        "name": visual_id(key),
+        "position": {"x": x, "y": y, "z": 4000, "width": w, "height": h, "tabOrder": 3100},
+        "visual": {
+            "visualType": "barChart",
+            "query": {
+                "queryState": {
+                    "Category": {"projections": [projection(category)]},
+                    "Y": {"projections": [projection(value, value_name)]},
+                },
+                "sortDefinition": {"sort": [{"field": value, "direction": "Ascending"}], "isDefaultSort": False},
+            },
+            "objects": {
+                # color comes from the measure, evaluated per bar (conditional formatting by field value)
+                "dataPoint": [{"properties": {"fill": {"solid": {"color": {"expr": color_measure}}}},
+                               "selector": {"data": [{"dataViewWildcard": {"matchingOption": 1}}]}}],
+                "labels": [props(show=True, labelDisplayUnits=MILLIONS, labelPrecision=1, fontSize=10.0)],
+            },
+            "visualContainerObjects": chart_container(title, alt_text),
+        },
+    }
+
+
 # ---------------------------------------------------------------------------
 # Page: Executive Summary
 # ---------------------------------------------------------------------------
@@ -235,6 +313,20 @@ kpis = [
 ]
 for i, (key, name, value_field, context_field, accent) in enumerate(kpis):
     exec_visuals += kpi_tile(key, MARGIN + i * (352 + 24), 128, 352, name, value_field, context_field, accent)
+
+# Middle row (y 296-656): trend on the left (x 32-1132), gap by ASM on the right (x 1156-1888)
+exec_visuals += [
+    trend_chart("exec.trend", MARGIN, 296, 1100, 360, column("Date", "Month Name"), [
+        (measure("Primary Sales", "Primary Sales"), "Sell-in", BLUE, False),
+        (measure("Secondary Sales", "Secondary Sales"), "Sell-out", TEAL, False),
+        (measure("Targets", "Primary Target"), "Primary target", "#94A3B8", True),
+    ]),
+    ranked_bar_chart("exec.gap_by_asm", 1156, 296, 732, 360, column("Area", "ASM"),
+                     measure("Targets", "Primary Gap to Target"), "Gap to target",
+                     measure("Targets", "Achievement Color"),
+                     "Gap to primary target by ASM (worst first)",
+                     "Bar chart of each area sales manager's gap to primary target, red when behind"),
+]
 
 # ---------------------------------------------------------------------------
 # Write files

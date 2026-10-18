@@ -27,7 +27,7 @@ table Targets
 			RETURN
 			    IF ( NOT ISBLANK ( TargetValue ), [Primary Sales] - TargetValue )
 			```
-		formatString: ₹#,##0;-₹#,##0;₹0
+		formatString: ₹#,##0
 		displayFolder: Achievement
 
 	/// Text under the % of target KPI: rupee gap to the primary target.

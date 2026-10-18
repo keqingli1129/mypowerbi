@@ -72,7 +72,7 @@
     },
     "lineChart": {
       "*": {
-        "lineStyles": [{ "strokeWidth": 2.5, "areaShow": false }],
+        "lineStyles": [{ "strokeWidth": 2.5, "areaShow": false, "lineChartType": "linear" }],
         "labels": [{ "show": false }],
         "categoryAxis": [{ "show": true, "fontSize": 10, "showAxisTitle": false, "gridlineShow": false }],
         "valueAxis": [{ "show": true, "fontSize": 9, "showAxisTitle": false }],

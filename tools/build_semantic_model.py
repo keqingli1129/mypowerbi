@@ -257,7 +257,7 @@ RETURN
         {"name": "Secondary Achievement %", "folder": "Achievement", "format": "0.0%",
          "description": "Secondary sales ÷ secondary target.",
          "dax": "DIVIDE ( [Secondary Sales], [Secondary Target] )"},
-        {"name": "Primary Gap to Target", "folder": "Achievement", "format": "₹#,##0;-₹#,##0;₹0",
+        {"name": "Primary Gap to Target", "folder": "Achievement", "format": "₹#,##0",
          "description": "Primary sales minus primary target; negative means behind target.",
          "dax": """
 VAR TargetValue = [Primary Target]
