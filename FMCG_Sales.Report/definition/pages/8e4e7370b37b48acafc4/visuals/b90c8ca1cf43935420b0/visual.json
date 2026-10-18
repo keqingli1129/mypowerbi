@@ -21,7 +21,7 @@
                   {
                     "value": "Are we on target and growing?",
                     "textStyle": {
-                      "fontFamily": "Segoe UI Semibold",
+                      "fontFamily": "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif",
                       "fontSize": "22pt",
                       "color": "#1E293B"
                     }
@@ -33,7 +33,7 @@
                   {
                     "value": "Sell-in, sell-out and distributor stock · data from Jan 2025 to Jun 2026",
                     "textStyle": {
-                      "fontFamily": "Segoe UI",
+                      "fontFamily": "'Segoe UI', wf_segoe-ui_normal, helvetica, arial, sans-serif",
                       "fontSize": "11pt",
                       "color": "#64748B"
                     }

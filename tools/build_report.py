@@ -27,6 +27,9 @@ PAGE_BG = "#F1F5F9"
 TEXT = "#1E293B"
 TEXT_MUTED = "#64748B"
 WIDTH, HEIGHT, MARGIN = 1920, 1080, 32
+# Font lists: Segoe UI on Windows, Power BI's web font or Helvetica/Arial elsewhere (e.g. Linux, Mac)
+FONT = "'Segoe UI', wf_segoe-ui_normal, helvetica, arial, sans-serif"
+FONT_SEMIBOLD = "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif"
 
 # ---------------------------------------------------------------------------
 # Small helpers for PBIR expressions
@@ -98,7 +101,7 @@ def textbox(key, x, y, w, h, paragraphs):
     }
 
 
-def text_run(text, size, weight_font="Segoe UI", text_color=TEXT):
+def text_run(text, size, weight_font=FONT, text_color=TEXT):
     return {"textRuns": [{"value": text, "textStyle": {"fontFamily": weight_font, "fontSize": f"{size}pt",
                                                         "color": text_color}}]}
 
@@ -136,6 +139,64 @@ def dropdown_slicer(key, x, y, w, h, field, header, single=False, newest_first=F
     }
 
 
+def no_border_container():
+    """Container formatting for card pieces that together form one borderless white tile."""
+    return {"border": [props(show=False)], "padding": padding(4, 4, 16, 16)}
+
+
+def kpi_tile(key, x, y, w, name, value_field, context_field, accent):
+    """A KPI tile = value card (label above a big value, colored accent bar) + context card below it."""
+    default = {"selector": {"id": "default"}}
+    value_card = {
+        "$schema": VISUAL_SCHEMA,
+        "name": visual_id(f"{key}.value"),
+        "position": {"x": x, "y": y, "z": 2000, "width": w, "height": 96, "tabOrder": 2000},
+        "visual": {
+            "visualType": "cardVisual",
+            "query": {"queryState": {"Data": {"projections": [projection(value_field)]}}},
+            "objects": {
+                "label": [{**props(show=True, text=name, position="aboveValue", fontSize=10.0,
+                                   fontColor=color(TEXT_MUTED)), **default}],
+                "value": [{**props(fontSize=26.0, fontColor=color(TEXT)), **default}],
+                "outline": [{**props(show=False), **default}],
+            },
+            "visualContainerObjects": no_border_container(),
+        },
+    }
+    context_card = {
+        "$schema": VISUAL_SCHEMA,
+        "name": visual_id(f"{key}.context"),
+        "position": {"x": x, "y": y + 96, "z": 2000, "width": w, "height": 48, "tabOrder": 2001},
+        "visual": {
+            "visualType": "cardVisual",
+            "query": {"queryState": {"Data": {"projections": [projection(context_field)]}}},
+            "objects": {
+                "label": [{**props(show=False), **default}],
+                "value": [{**props(fontSize=11.0, bold=False, fontColor=color("#475569")), **default}],
+                "outline": [{**props(show=False), **default}],
+            },
+            "visualContainerObjects": no_border_container(),
+        },
+    }
+    # One continuous accent bar for the whole tile: a thin rectangle drawn on top of both cards
+    accent_bar = {
+        "$schema": VISUAL_SCHEMA,
+        "name": visual_id(f"{key}.bar"),
+        "position": {"x": x + 14, "y": y + 16, "z": 3000, "width": 4, "height": 112, "tabOrder": 2002},
+        "visual": {
+            "visualType": "shape",
+            "objects": {
+                "shape": [props(tileShape="rectangle")],
+                "fill": [{**props(fillColor=color(accent), transparency=0.0), **default}],
+                "outline": [{**props(show=False), **default}],
+            },
+            "visualContainerObjects": {"background": [props(show=False)], "border": [props(show=False)],
+                                       "padding": padding(0, 0, 0, 0)},
+        },
+    }
+    return [(f"{key}.value", value_card), (f"{key}.context", context_card), (f"{key}.bar", accent_bar)]
+
+
 # ---------------------------------------------------------------------------
 # Page: Executive Summary
 # ---------------------------------------------------------------------------
@@ -145,7 +206,7 @@ EXEC_PAGE = "8e4e7370b37b48acafc4"  # created by the Step 4b scaffold
 exec_visuals = [
     # Header band (y 24-104): title on the left, slicers on the right
     textbox("exec.title", MARGIN, 24, 1100, 80, [
-        text_run("Are we on target and growing?", 22, "Segoe UI Semibold"),
+        text_run("Are we on target and growing?", 22, FONT_SEMIBOLD),
         text_run("Sell-in, sell-out and distributor stock · data from Jan 2025 to Jun 2026", 11,
                  text_color=TEXT_MUTED),
     ]),
@@ -157,6 +218,23 @@ exec_visuals = [
     dropdown_slicer("exec.slicer.category", 1688, 24, 200, 80, column("Category", "Category"), "Category",
                     sync_group="Category"),
 ]
+
+# KPI strip (y 128-272): 5 tiles of 352 px with 24 px gaps between the 32 px margins
+BLUE, TEAL, SLATE, AMBER = "#0F6CBD", "#0E7C7B", "#475569", "#B45309"
+kpis = [
+    ("exec.kpi.sellin", "SELL-IN (PRIMARY)", measure("Primary Sales", "Primary Sales"),
+     measure("Primary Sales", "Primary Sales Context"), BLUE),
+    ("exec.kpi.sellout", "SELL-OUT (SECONDARY)", measure("Secondary Sales", "Secondary Sales"),
+     measure("Secondary Sales", "Secondary Sales Context"), TEAL),
+    ("exec.kpi.target", "% OF PRIMARY TARGET", measure("Targets", "Primary Achievement %"),
+     measure("Targets", "Achievement Context"), SLATE),
+    ("exec.kpi.sellthrough", "SELL-THROUGH", measure("Secondary Sales", "Sell-Through %"),
+     measure("Secondary Sales", "Sell-Through Context"), TEAL),
+    ("exec.kpi.stock", "DISTRIBUTOR STOCK (UNITS)", measure("Secondary Sales", "Pipeline Stock Units"),
+     measure("Secondary Sales", "Pipeline Stock Context"), AMBER),
+]
+for i, (key, name, value_field, context_field, accent) in enumerate(kpis):
+    exec_visuals += kpi_tile(key, MARGIN + i * (352 + 24), 128, 352, name, value_field, context_field, accent)
 
 # ---------------------------------------------------------------------------
 # Write files

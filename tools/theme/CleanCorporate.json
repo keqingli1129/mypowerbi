@@ -15,10 +15,10 @@
   "backgroundNeutral": "#E2E8F0",
   "tableAccent": "#0F6CBD",
   "textClasses": {
-    "callout": { "fontSize": 26, "fontFace": "Segoe UI Semibold", "color": "#1E293B" },
-    "title": { "fontSize": 13, "fontFace": "Segoe UI Semibold", "color": "#1E293B" },
-    "header": { "fontSize": 11, "fontFace": "Segoe UI Semibold", "color": "#1E293B" },
-    "label": { "fontSize": 10, "fontFace": "Segoe UI", "color": "#334155" }
+    "callout": { "fontSize": 26, "fontFace": "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif", "color": "#1E293B" },
+    "title": { "fontSize": 13, "fontFace": "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif", "color": "#1E293B" },
+    "header": { "fontSize": 11, "fontFace": "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif", "color": "#1E293B" },
+    "label": { "fontSize": 10, "fontFace": "'Segoe UI', wf_segoe-ui_normal, helvetica, arial, sans-serif", "color": "#334155" }
   },
   "visualStyles": {
     "*": {
@@ -28,7 +28,7 @@
         "dropShadow": [{ "show": false }],
         "padding": [{ "top": 12, "bottom": 12, "left": 16, "right": 16 }],
         "visualHeader": [{ "show": false }],
-        "title": [{ "show": true, "fontSize": 13, "fontFamily": "Segoe UI Semibold", "fontColor": { "solid": { "color": "#1E293B" } } }],
+        "title": [{ "show": true, "fontSize": 13, "fontFamily": "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif", "fontColor": { "solid": { "color": "#1E293B" } } }],
         "subTitle": [{ "show": false }],
         "categoryAxis": [{ "gridlineStyle": "dotted", "gridlineColor": { "solid": { "color": "#E2E8F0" } }, "labelColor": { "solid": { "color": "#475569" } } }],
         "valueAxis": [{ "gridlineStyle": "dotted", "gridlineColor": { "solid": { "color": "#E2E8F0" } }, "labelColor": { "solid": { "color": "#475569" } } }]
@@ -44,8 +44,8 @@
     "slicer": {
       "*": {
         "title": [{ "show": false }],
-        "header": [{ "fontFamily": "Segoe UI Semibold", "textSize": 10, "fontColor": { "solid": { "color": "#334155" } }, "outlineStyle": 0 }],
-        "items": [{ "fontFamily": "Segoe UI", "textSize": 10, "fontColor": { "solid": { "color": "#1E293B" } }, "outlineStyle": 0, "padding": 2 }]
+        "header": [{ "fontFamily": "'Segoe UI Semibold', wf_segoe-ui_semibold, helvetica, arial, sans-serif", "textSize": 10, "fontColor": { "solid": { "color": "#334155" } }, "outlineStyle": 0 }],
+        "items": [{ "fontFamily": "'Segoe UI', wf_segoe-ui_normal, helvetica, arial, sans-serif", "textSize": 10, "fontColor": { "solid": { "color": "#1E293B" } }, "outlineStyle": 0, "padding": 2 }]
       }
     },
     "cardVisual": {
