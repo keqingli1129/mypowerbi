@@ -82,13 +82,16 @@ the Executive Summary shows the same numbers as the published report.
   screenshot can fail with "Print metadata is not available"; retry once.
 - Git holds no data: after opening, click **Refresh now** (Desktop asks for the Databricks personal
   access token the first time and stores it on the PC, not in Git).
-- Desktop then shows "There are pending changes in your queries that haven't been applied" although
-  nothing was edited; **Apply changes** clears it. Cause not yet confirmed (probably query metadata
-  Desktop writes but the generator doesn't).
-- Not saved in Desktop yet. Saving rewrites files (`lineageTag`s, `diagramLayout.json`, `.platform`,
-  its own formatting): review with `git diff` and fix the generator scripts
-  (`tools/build_semantic_model.py`, `tools/build_report.py`), never hand-edit generated files.
-  `.pbi/` (cache, local settings) is git-ignored.
+- After a refresh Desktop showed "There are pending changes in your queries that haven't been
+  applied" until the generator wrote `PBI_QueryOrder` (model) and `PBI_ResultType` (parameters), the
+  annotations Desktop writes itself. The generator also sets `__PBI_TimeIntelligenceEnabled = 0` so
+  Desktop doesn't add hidden auto date tables (`LocalDateTable_*`).
+- **Don't commit what Desktop saves.** Saving rewrites ~50 files, mostly noise (random
+  `lineageTag`s, schema versions, no final newline, reformatted theme/TMDL), and it turned the Year
+  slicer's automatic newest-year selection into a fixed `Year = 2026` filter. Compare with
+  `git diff`, carry anything useful into the generator scripts (`tools/build_semantic_model.py`,
+  `tools/build_report.py`), then restore the generated files. `.pbi/` (cache, local settings) is
+  git-ignored; Desktop's data cache there lets it open with data without a refresh.
 
 ## Next planned work
 

@@ -1,7 +1,15 @@
 expression 'Databricks Host' = "adb-7405618954475016.16.azuredatabricks.net" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
 
+	annotation PBI_ResultType = Text
+
 expression 'Databricks HTTP Path' = "/sql/1.0/warehouses/853d0914df399a3a" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+
+	annotation PBI_ResultType = Text
 
 expression 'Databricks Catalog' = "e2e_dev" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
 
+	annotation PBI_ResultType = Text
+
 expression 'Databricks Schema' = "fmcg" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]
+
+	annotation PBI_ResultType = Text

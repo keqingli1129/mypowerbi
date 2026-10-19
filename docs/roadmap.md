@@ -31,7 +31,8 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 10e | Daily 06:00 Central scheduled refresh; "Data refreshed …" footer; 37 checks | ✅ | `2cd465e` |
 | 11 | Windows PC | 🔄 | |
 | 11a | Tooling: `az.cmd` in `fabric.py`, `-X utf8`, 37 checks pass from Windows | ✅ | `9ec90ef` |
-| 11b | Open the PBIP in Power BI Desktop: refresh from Databricks, same numbers, bridge screenshots | ✅ | (this commit) |
+| 11b | Open the PBIP in Power BI Desktop: refresh from Databricks, same numbers, bridge screenshots | ✅ | `dda6559` |
+| 11c | Save once in Desktop, compare; generator writes Desktop's query annotations, auto date/time off | ✅ | (this commit) |
 
 ## Data source today
 
@@ -72,3 +73,5 @@ Excel ──(tools/load_to_databricks.py, run manually)──► Databricks e2e_
 - On Windows, Python's `subprocess` can't run plain `az` (it is `az.cmd`, next to a bash script
   called `az`), so `tools/fabric.py` looks up `az.cmd` first. The console uses cp1252, so scripts
   that print ✅/▲/₹ need Python's UTF-8 mode (`-X utf8`).
+- Saving in Power BI Desktop turns what a slicer currently shows into a fixed filter (the Year
+  slicer got `Year = 2026`). Keep generating the report instead of committing Desktop's save.

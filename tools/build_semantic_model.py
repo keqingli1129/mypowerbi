@@ -400,18 +400,30 @@ for fact, column, dim_name in RELATIONSHIPS:
                   f"\ttoColumn: {q(dim_name)}.{q(key)}", ""]
 (DEF_DIR / "relationships.tmdl").write_text("\n".join(rel_lines), encoding="utf-8")
 
-(DEF_DIR / "model.tmdl").write_text("\n".join(
-    ["model Model", "\tculture: en-US", "\tdefaultPowerBIDataSourceVersion: powerBI_V3",
-     "\tsourceQueryCulture: en-US", "\tdiscourageImplicitMeasures", ""]
-    + [f"ref table {q(name)}" for name in [*data, REFRESH_TABLE]]) + "\n", encoding="utf-8")
-
 # Connection parameters (Databricks only): one place to change warehouse, catalog or schema
-expressions = DEF_DIR / "expressions.tmdl"
+params = {}
 if SOURCE == "databricks":
     params = {"Databricks Host": DATABRICKS_HOST, "Databricks HTTP Path": DATABRICKS_HTTP_PATH,
               "Databricks Catalog": DATABRICKS_CATALOG, "Databricks Schema": DATABRICKS_SCHEMA}
+
+# Annotations Power BI Desktop writes itself (seen when saving the project in Desktop):
+#   __PBI_TimeIntelligenceEnabled = 0  auto date/time off; we have our own Date table, so Desktop
+#                                      shouldn't add hidden LocalDateTable_* tables
+#   PBI_QueryOrder                     order of the Power Query queries (tables, then parameters)
+query_order = json.dumps([*data, REFRESH_TABLE, *params], ensure_ascii=False, separators=(",", ":"))
+(DEF_DIR / "model.tmdl").write_text("\n".join(
+    ["model Model", "\tculture: en-US", "\tdefaultPowerBIDataSourceVersion: powerBI_V3",
+     "\tsourceQueryCulture: en-US", "\tdiscourageImplicitMeasures", "",
+     f"annotation PBI_QueryOrder = {query_order}", "",
+     "annotation __PBI_TimeIntelligenceEnabled = 0", ""]
+    + [f"ref table {q(name)}" for name in [*data, REFRESH_TABLE]]) + "\n", encoding="utf-8")
+
+expressions = DEF_DIR / "expressions.tmdl"
+if params:
+    # PBI_ResultType: the parameter's result type in Power Query (Desktop writes it on save)
     expressions.write_text("\n".join(
         f'expression {q(k)} = "{v}" meta [IsParameterQuery = true, Type = "Text", IsParameterQueryRequired = true]\n'
+        f"\n\tannotation PBI_ResultType = Text\n"
         for k, v in params.items()), encoding="utf-8")
 else:
     expressions.unlink(missing_ok=True)
