@@ -2,6 +2,7 @@
 
 import base64
 import json
+import shutil
 import subprocess
 import time
 import urllib.error
@@ -20,7 +21,8 @@ def token(resource):
     """Get an access token for the signed-in az account (cached per API)."""
     if resource not in _tokens:
         result = subprocess.run(
-            ["az", "account", "get-access-token", "--resource", resource, "--query", "accessToken", "-o", "tsv"],
+            # On Windows az is az.cmd, which subprocess can't find from plain "az" (Linux has no az.cmd)
+            [shutil.which("az.cmd") or "az", "account", "get-access-token", "--resource", resource, "--query", "accessToken", "-o", "tsv"],
             check=True, capture_output=True, text=True)
         _tokens[resource] = result.stdout.strip()
     return _tokens[resource]

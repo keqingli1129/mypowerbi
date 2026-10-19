@@ -66,3 +66,6 @@ Excel ──(tools/load_to_databricks.py, run manually)──► Databricks e2e_
 - The first refresh after switching to Databricks took about 13 minutes on shared capacity, although
   Databricks answered every query in under 2 seconds.
 - A refresh copies Databricks → Power BI; it never re-reads the Excel file.
+- On Windows, Python's `subprocess` can't run plain `az` (it is `az.cmd`, next to a bash script
+  called `az`), so `tools/fabric.py` looks up `az.cmd` first. The console uses cp1252, so scripts
+  that print ✅/▲/₹ need Python's UTF-8 mode (`-X utf8`).
