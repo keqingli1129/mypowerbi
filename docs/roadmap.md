@@ -28,7 +28,10 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 10b | Load the 10 tables as Delta tables (`tools/load_to_databricks.py`) | ✅ | `dc36337` |
 | 10c | Model partitions read Databricks; snake_case `sourceColumn`; connection parameters | ✅ | `9c76c3c` |
 | 10d | Personal access token (scope: BI Tools) entered in the Service | ✅ | (Service only) |
-| 10e | Daily 06:00 Central scheduled refresh; "Data refreshed …" footer; 37 checks | ✅ | (this commit) |
+| 10e | Daily 06:00 Central scheduled refresh; "Data refreshed …" footer; 37 checks | ✅ | `2cd465e` |
+| 11 | Windows PC | 🔄 | |
+| 11a | Tooling: `az.cmd` in `fabric.py`, `-X utf8`, 37 checks pass from Windows | ✅ | `9ec90ef` |
+| 11b | Open the PBIP in Power BI Desktop: refresh from Databricks, same numbers, bridge screenshots | ✅ | (this commit) |
 
 ## Data source today
 
