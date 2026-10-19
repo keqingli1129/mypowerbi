@@ -92,6 +92,11 @@ def padding(top, bottom, left, right):
     return [props(top=float(top), bottom=float(bottom), left=float(left), right=float(right))]
 
 
+def filter_card(key, field):
+    """Filters pane card on a column, nothing selected: viewers tick values (basic filtering)."""
+    return {"name": visual_id(key), "field": field, "type": "Categorical", "howCreated": "User"}
+
+
 # ---------------------------------------------------------------------------
 # Visual builders
 # ---------------------------------------------------------------------------
@@ -274,10 +279,12 @@ def trend_chart(key, x, y, w, h, category, series):
 
 
 def ranked_bar_chart(key, x, y, w, h, category, value, value_name, color_measure, title, alt_text,
-                     direction="Ascending", label_units=MILLIONS):
-    """Horizontal bars sorted by value; each bar colored by a color measure (red/green)."""
+                     direction="Ascending", label_units=MILLIONS, filters=()):
+    """Horizontal bars sorted by value; each bar colored by a color measure (red/green).
+    filters: filter_card(...) entries shown under "Filters on this visual"."""
     units = {"labelDisplayUnits": label_units, "labelPrecision": 1} if label_units else {}
     labels = props(show=True, **units, fontSize=10.0)
+    filter_config = {"filterConfig": {"filters": list(filters)}} if filters else {}
     return key, {
         "$schema": VISUAL_SCHEMA,
         "name": visual_id(key),
@@ -299,6 +306,7 @@ def ranked_bar_chart(key, x, y, w, h, category, value, value_name, color_measure
             },
             "visualContainerObjects": chart_container(title, alt_text),
         },
+        **filter_config,
     }
 
 
@@ -405,7 +413,9 @@ exec_visuals += [
                      measure("Primary Sales", "Primary YoY Color"),
                      "Sell-in growth by category (2026 vs 2025)",
                      "Bar chart of year-over-year sell-in growth by product category, green when growing",
-                     direction="Descending", label_units=None),
+                     direction="Descending", label_units=None,
+                     # Step 12a: first Filters pane filter, on this visual only (test before page level)
+                     filters=[filter_card("exec.growth_by_category.filter.brand", column("Product", "Brand"))]),
     # Footer: where the numbers come from (left) and when they were last refreshed (right)
     textbox("exec.footer", MARGIN, 1028, 1400, 24, [
         text_run("Source: Databricks e2e_dev.fmcg, loaded from FMCG_Sales_Data_Suraj_Consumer.xlsx · "

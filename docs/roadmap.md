@@ -29,10 +29,13 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 10c | Model partitions read Databricks; snake_case `sourceColumn`; connection parameters | ✅ | `9c76c3c` |
 | 10d | Personal access token (scope: BI Tools) entered in the Service | ✅ | (Service only) |
 | 10e | Daily 06:00 Central scheduled refresh; "Data refreshed …" footer; 37 checks | ✅ | `2cd465e` |
-| 11 | Windows PC | 🔄 | |
+| 11 | Windows PC | ✅ | |
 | 11a | Tooling: `az.cmd` in `fabric.py`, `-X utf8`, 37 checks pass from Windows | ✅ | `9ec90ef` |
 | 11b | Open the PBIP in Power BI Desktop: refresh from Databricks, same numbers, bridge screenshots | ✅ | `dda6559` |
-| 11c | Save once in Desktop, compare; generator writes Desktop's query annotations, auto date/time off | ✅ | (this commit) |
+| 11c | Save once in Desktop, compare; generator writes Desktop's query annotations, auto date/time off | ✅ | `598a31b` |
+| 12 | Filters pane | 🔄 | |
+| 12a | Visual-level filter: Brand card on "Sell-in growth by category", nothing preselected (checked in Desktop) | ✅ | (this commit) |
+| 12b | Page-level filter ("Filters on this page") | ⬜ | |
 
 ## Data source today
 
@@ -75,3 +78,6 @@ Excel ──(tools/load_to_databricks.py, run manually)──► Databricks e2e_
   that print ✅/▲/₹ need Python's UTF-8 mode (`-X utf8`).
 - Saving in Power BI Desktop turns what a slicer currently shows into a fixed filter (the Year
   slicer got `Year = 2026`). Keep generating the report instead of committing Desktop's save.
+- A filter card with no selection is a `filterConfig` entry without a `filter` part (no fixed
+  value in the file). In Desktop, "Filters on this visual" also lists the visual's own fields
+  (Category, Sell-in growth) automatically; those aren't stored in the PBIR.
