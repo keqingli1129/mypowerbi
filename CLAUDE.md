@@ -71,15 +71,15 @@ Databricks work), the Claude Code plugins `powerbi-authoring` and `databricks`.
 Done 2026-10-18: the generated PBIP opens in Desktop without errors, refreshes from Databricks and
 the Executive Summary shows the same numbers as the published report.
 
-- Open it with the Desktop bridge CLI. Desktop is the Microsoft Store version, whose path the CLI
-  doesn't know (the folder name contains the version, so look it up):
-  ```
-  $p = Get-AppxPackage -Name Microsoft.MicrosoftPowerBIDesktop; $env:PBI_DESKTOP_PATH = Join-Path $p.InstallLocation "bin\PBIDesktop.exe"; powerbi-desktop open "<repo>\FMCG_Sales.pbip"
-  ```
+- Desktop is the installer version (`C:\Program Files\Microsoft Power BI Desktop\`, updated by
+  hand; the Microsoft Store version was removed because it had stopped updating and the bridge CLI
+  can't find it without `PBI_DESKTOP_PATH`). Open the project with
+  `powerbi-desktop open "<repo>\FMCG_Sales.pbip"`.
 - The bridge (`powerbi-desktop status | reload | screenshot <page-id> --pid <pid> --output <png>`)
   needs Desktop **2.155 or newer**; the setting is under Options → **Security** → Desktop Bridge
   (on by default). Executive Summary page id: `8e4e7370b37b48acafc4`. Right after opening, a
-  screenshot can fail with "Print metadata is not available"; retry once.
+  screenshot can fail ("Print metadata is not available") or catch a visual still drawing (the
+  scorecard looked empty); take it again.
 - Git holds no data: after opening, click **Refresh now** (Desktop asks for the Databricks personal
   access token the first time and stores it on the PC, not in Git).
 - After a refresh Desktop showed "There are pending changes in your queries that haven't been
