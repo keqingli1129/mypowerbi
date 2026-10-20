@@ -36,6 +36,10 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 12 | Filters pane | 🔄 | |
 | 12a | Visual-level filter: Brand card on "Sell-in growth by category", nothing preselected (checked in Desktop) | ✅ | (this commit) |
 | 12b | Page-level filter ("Filters on this page") | ⬜ | |
+| 13 | SQL Server as the source (local SQL Server 2022 Express `.\SQLEXPRESS` on this PC) | 🔄 | |
+| 13a | Database `FMCG`, schema `fmcg`, 10 empty tables (`tools/sqlserver/create_tables.sql`) | ✅ | (this commit) |
+| 13b | Load the data (`tools/load_to_sqlserver.py`) | ⬜ | |
+| 13c | Model reads SQL Server (`build_semantic_model.py --source sqlserver`), Desktop check | ⬜ | |
 
 ## Data source today
 
@@ -51,7 +55,9 @@ Excel ──(tools/load_to_databricks.py, run manually)──► Databricks e2e_
 ## Next options
 
 - **On-premises SQL Server as the source** (with an on-premises data gateway on a Windows machine):
-  step-by-step guide in [sqlserver_onprem_guide.md](sqlserver_onprem_guide.md), not yet done.
+  step-by-step guide in [sqlserver_onprem_guide.md](sqlserver_onprem_guide.md), in progress as
+  step 13 on the local SQL Server Express. The district server `BIGHORNDBVMD01` rejects the Windows
+  sign-in from this PC ("Cannot generate SSPI context", a Kerberos/SPN issue for the DBAs).
 
 ## Lessons learned so far
 
