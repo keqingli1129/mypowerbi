@@ -1,7 +1,7 @@
 """Shared data shaping: turns the Excel workbook into the model's 10 star-schema tables.
 
-Used by build_semantic_model.py (embedded data) and load_to_databricks.py (Delta tables),
-so both always contain exactly the same rows and columns.
+Used by build_semantic_model.py (embedded data), load_to_databricks.py (Delta tables) and
+load_to_sqlserver.py (SQL Server tables), so all of them contain exactly the same rows and columns.
 """
 
 import re
@@ -19,6 +19,11 @@ DATABRICKS_HOST = "adb-7405618954475016.16.azuredatabricks.net"
 DATABRICKS_WAREHOUSE_ID = "853d0914df399a3a"
 DATABRICKS_HTTP_PATH = f"/sql/1.0/warehouses/{DATABRICKS_WAREHOUSE_ID}"
 DATABRICKS_CATALOG, DATABRICKS_SCHEMA = "e2e_dev", "fmcg"
+
+# Where the tables live in SQL Server (Step 13): local SQL Server Express on the Windows PC,
+# Windows sign-in. Tables created by tools/sqlserver/create_tables.sql.
+SQLSERVER_SERVER = r"localhost\SQLEXPRESS"
+SQLSERVER_DATABASE, SQLSERVER_SCHEMA = "FMCG", "fmcg"
 
 # Dimension table -> its key column
 DIMENSION_KEYS = {"Date": "Date", "Area": "ASM", "Sales Officer": "Sales Officer",

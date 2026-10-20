@@ -37,8 +37,8 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 12a | Visual-level filter: Brand card on "Sell-in growth by category", nothing preselected (checked in Desktop) | ✅ | (this commit) |
 | 12b | Page-level filter ("Filters on this page") | ⬜ | |
 | 13 | SQL Server as the source (local SQL Server 2022 Express `.\SQLEXPRESS` on this PC) | 🔄 | |
-| 13a | Database `FMCG`, schema `fmcg`, 10 empty tables (`tools/sqlserver/create_tables.sql`) | ✅ | (this commit) |
-| 13b | Load the data (`tools/load_to_sqlserver.py`) | ⬜ | |
+| 13a | Database `FMCG`, schema `fmcg`, 10 empty tables (`tools/sqlserver/create_tables.sql`) | ✅ | `87c85b8` |
+| 13b | Load the data (`tools/load_to_sqlserver.py`): row counts and both control sums match | ✅ | (this commit) |
 | 13c | Model reads SQL Server (`build_semantic_model.py --source sqlserver`), Desktop check | ⬜ | |
 
 ## Data source today

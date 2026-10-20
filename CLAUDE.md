@@ -45,6 +45,8 @@ python3 -I -X utf8 tools/build_report.py
 powerbi-report-author validate FMCG_Sales.Report     # after every report change
 python3 -I -X utf8 tools/publish_report.py
 uv run --no-project --with pandas --with openpyxl --with pyarrow python -I -X utf8 tools/load_to_databricks.py
+sqlcmd -S .\SQLEXPRESS -E -C -b -i tools/sqlserver/create_tables.sql                          # once: FMCG database + tables
+uv run --no-project --with pandas --with openpyxl --with pyodbc python -I -X utf8 tools/load_to_sqlserver.py
 python3 -I -X utf8 tools/set_refresh_schedule.py     # turns the daily schedule on
 ```
 
