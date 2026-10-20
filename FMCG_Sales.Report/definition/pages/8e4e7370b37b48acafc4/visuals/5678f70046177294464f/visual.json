@@ -19,7 +19,7 @@
               {
                 "textRuns": [
                   {
-                    "value": "Source: Databricks e2e_dev.fmcg, loaded from FMCG_Sales_Data_Suraj_Consumer.xlsx · Data Jan 2025 – Jun 2026 · Values in Indian rupees (₹) · Sell-in = primary sales to distributors, sell-out = secondary sales to retailers",
+                    "value": "Source: SQL Server FMCG.fmcg, loaded from FMCG_Sales_Data_Suraj_Consumer.xlsx · Data Jan 2025 – Jun 2026 · Values in Indian rupees (₹) · Sell-in = primary sales to distributors, sell-out = secondary sales to retailers",
                     "textStyle": {
                       "fontFamily": "'Segoe UI', wf_segoe-ui_normal, helvetica, arial, sans-serif",
                       "fontSize": "9pt",

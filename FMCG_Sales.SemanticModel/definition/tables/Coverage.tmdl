@@ -73,10 +73,8 @@ table Coverage
 		mode: import
 		source =
 				let
-					// Azure Databricks connector: warehouse -> catalog -> schema -> table
-					Source = Databricks.Catalogs(#"Databricks Host", #"Databricks HTTP Path", [Catalog = null, Database = null]),
-					Catalog = Source{[Name = #"Databricks Catalog", Kind = "Database"]}[Data],
-					Schema = Catalog{[Name = #"Databricks Schema", Kind = "Schema"]}[Data],
-					Table = Schema{[Name = "coverage", Kind = "Table"]}[Data]
+					// SQL Server connector: server + database -> schema.table
+					Source = Sql.Database(#"SQL Server", #"SQL Database"),
+					Table = Source{[Schema = "fmcg", Item = "coverage"]}[Data]
 				in
 					Table

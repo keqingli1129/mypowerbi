@@ -4,7 +4,7 @@ model Model
 	sourceQueryCulture: en-US
 	discourageImplicitMeasures
 
-annotation PBI_QueryOrder = ["Date","Area","Sales Officer","Distributor","Category","Product","Primary Sales","Secondary Sales","Targets","Coverage","Refresh Info","Databricks Host","Databricks HTTP Path","Databricks Catalog","Databricks Schema"]
+annotation PBI_QueryOrder = ["Date","Area","Sales Officer","Distributor","Category","Product","Primary Sales","Secondary Sales","Targets","Coverage","Refresh Info","SQL Server","SQL Database"]
 
 annotation __PBI_TimeIntelligenceEnabled = 0
 

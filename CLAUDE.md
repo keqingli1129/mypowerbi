@@ -20,8 +20,8 @@ lessons learned) and `docs/fmcg_report_walkthrough.md` (how everything works).
 | Power BI workspace | My workspace (personal). Power BI REST paths are `/myorg/datasets/{id}`, not `/groups/{id}/…` |
 | Semantic model | `FMCG_Sales`, id `07ea8c6c-fc63-4750-bdb0-0d0017bc40ad` |
 | Report | `FMCG_Sales`, id `28e2cc00-ca3f-489e-9274-bedd03a43650` |
-| Current data source | Azure Databricks: CLI profile `azure`, host `adb-7405618954475016.16.azuredatabricks.net`, warehouse `853d0914df399a3a`, tables in `e2e_dev.fmcg` |
-| Service credentials | Databricks personal access token (scope BI Tools), created 2026-10-18 with a 13-day lifetime |
+| Current data source | **SQL Server** (since Step 13e, 2026-10-19): see the SQL Server and Gateway rows. Build both scripts with `--source sqlserver` |
+| Previous source (still loaded) | Azure Databricks: CLI profile `azure`, host `adb-7405618954475016.16.azuredatabricks.net`, warehouse `853d0914df399a3a`, tables in `e2e_dev.fmcg`; Service credential: personal access token (scope BI Tools), created 2026-10-18 with a 13-day lifetime |
 | Refresh schedule | Configured daily 06:00 Central, email on failure; currently switched **off** |
 | Fallback source | `build_semantic_model.py --source embedded` (data embedded in the model, no credentials) |
 | SQL Server source (Step 13) | Local SQL Server 2022 Express `localhost\SQLEXPRESS` on the Windows PC, database `FMCG`, schema `fmcg`; read-only login `powerbi_reader` (password kept by the owner, not in Git) |
@@ -99,6 +99,6 @@ the Executive Summary shows the same numbers as the published report.
 
 ## Next planned work
 
-**On-premises SQL Server as the source**, on a Windows PC: follow `docs/sqlserver_onprem_guide.md`.
-Still to write when that starts: `tools/load_to_sqlserver.py` and a `--source sqlserver` option in
-`tools/build_semantic_model.py` (mirroring `--source databricks`).
+SQL Server as the source is done (Step 13, local Express + gateway on this PC). Open options are in
+`docs/roadmap.md` → "Next options": the district SQL Server (blocked by a Kerberos sign-in error),
+the daily schedule from SQL Server, and step 12b (page-level filter).

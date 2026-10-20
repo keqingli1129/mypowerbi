@@ -36,34 +36,41 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 12 | Filters pane | 🔄 | |
 | 12a | Visual-level filter: Brand card on "Sell-in growth by category", nothing preselected (checked in Desktop) | ✅ | (this commit) |
 | 12b | Page-level filter ("Filters on this page") | ⬜ | |
-| 13 | SQL Server as the source (local SQL Server 2022 Express `.\SQLEXPRESS` on this PC) | 🔄 | |
+| 13 | SQL Server as the source (local SQL Server 2022 Express `.\SQLEXPRESS` on this PC) | ✅ | |
 | 13a | Database `FMCG`, schema `fmcg`, 10 empty tables (`tools/sqlserver/create_tables.sql`) | ✅ | `87c85b8` |
 | 13b | Load the data (`tools/load_to_sqlserver.py`): row counts and both control sums match | ✅ | `efc1609` |
 | 13c | Model reads SQL Server (`build_semantic_model.py --source sqlserver`): Desktop refresh, same numbers | ✅ | `061307d` |
 | 13d | Report footer names the source (`build_report.py --source`); repo stays on Databricks until 13e | ✅ | `089e3ef` |
-| 13e | Service refreshes from SQL Server (guide steps 5-8) | 🔄 | |
+| 13e | Service refreshes from SQL Server (guide steps 5-8) | ✅ | |
 | 13e1 | Read-only login `powerbi_reader` (`tools/sqlserver/create_reader.sql`): SELECT on schema `fmcg` only | ✅ | `83528b0` |
 | 13e2 | On-premises data gateway `FMCG-GW` (standard mode, 3000.334) on this PC: service running, online | ✅ | (installer only) |
 | 13e3 | Gateway connection `FMCG SQL Server` in the Service (`localhost\SQLEXPRESS;FMCG`, Basic `powerbi_reader`, no SSO) | ✅ | (Service only) |
-| 13e4 | Build and publish with `--source sqlserver`, bind to the gateway, refresh, 37 checks | ⬜ | |
+| 13e4 | Publish with `--source sqlserver`; `publish_model.py` binds to the gateway, refresh ~20 s, 37 checks pass, report footer names SQL Server | ✅ | (this commit) |
 
 ## Data source today
 
 ```
-Excel ──(tools/load_to_databricks.py, run manually)──► Databricks e2e_dev.fmcg ──(daily 06:00 refresh)──► Power BI
+Excel ──(load_to_sqlserver.py, run manually)──► SQL Server Express FMCG.fmcg (this PC) ──(gateway FMCG-GW)──► Power BI
 ```
 
-- Credentials: a Databricks personal access token (scope **BI Tools**, 13-day lifetime) stored in
-  the semantic model's **Data source credentials**. When it expires, the 06:00 refresh fails and you
-  get an email: generate a new token and paste it there.
-- Fallback without Databricks: `build_semantic_model.py --source embedded` → `publish_model.py`.
+- The Service refreshes through the on-premises data gateway `FMCG-GW` on this PC, using the gateway
+  connection `FMCG SQL Server` (read-only login `powerbi_reader`). **The PC must be on** (SQL Express
+  and gateway services running) for a refresh; the daily schedule is still switched off.
+- Switch sources with one flag on both build scripts, then publish:
+  `build_semantic_model.py --source databricks|sqlserver|embedded` and `build_report.py --source …`.
+  `publish_model.py` binds to the gateway only when the model reads SQL Server.
+- Databricks (`e2e_dev.fmcg`) is still loaded and its token still stored in the Service; going back
+  is `--source databricks` + publish (not yet tested whether the old gateway binding needs removing).
+- Fallback without any source: `--source embedded`.
 
 ## Next options
 
-- **On-premises SQL Server as the source** (with an on-premises data gateway on a Windows machine):
-  step-by-step guide in [sqlserver_onprem_guide.md](sqlserver_onprem_guide.md), in progress as
-  step 13 on the local SQL Server Express. The district server `BIGHORNDBVMD01` rejects the Windows
-  sign-in from this PC ("Cannot generate SSPI context", a Kerberos/SPN issue for the DBAs).
+- **District SQL Server instead of the local Express:** `BIGHORNDBVMD01` rejects the Windows sign-in
+  from this PC ("Cannot generate SSPI context", a Kerberos/SPN issue for the DBAs). Once it works,
+  change `SQLSERVER_SERVER` in `fmcg_data.py`, create the tables there, and add a gateway connection
+  with exactly that server name.
+- **Daily schedule** from SQL Server: `set_refresh_schedule.py` (needs the PC on at 06:00 Central).
+- **12b:** a page-level filter.
 
 ## Lessons learned so far
 
@@ -93,3 +100,7 @@ Excel ──(tools/load_to_databricks.py, run manually)──► Databricks e2e_
 - A filter card with no selection is a `filterConfig` entry without a `filter` part (no fixed
   value in the file). In Desktop, "Filters on this visual" also lists the visual's own fields
   (Category, Sell-in growth) automatically; those aren't stored in the PBIR.
+- A refresh from the local SQL Server through the gateway took about 20 seconds; the same refresh
+  from Databricks took about 13 minutes on shared capacity.
+- For a gateway source, the model must be bound (`Default.BindToGateway`) before its first refresh;
+  the gateway connection's server/database must match the M parameters exactly.
