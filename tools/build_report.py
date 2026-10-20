@@ -4,14 +4,28 @@ Each visual is written to FMCG_Sales.Report/definition/pages/<page>/visuals/<id>
 Visual IDs are derived from a readable key, so re-running produces the same files (clean diffs).
 
 Run from the project root, then validate:
-    python3 -I tools/build_report.py
+    python3 -I tools/build_report.py [--source sqlserver|embedded]
     powerbi-report-author validate FMCG_Sales.Report
+
+--source only changes the footer's "Source: ..." text; use the same value as for build_semantic_model.py.
 """
 
+import argparse
 import hashlib
 import json
 import shutil
 from pathlib import Path
+
+# Where the data comes from, named in the footer. Mirrors the constants in fmcg_data.py, which this
+# script can't import (fmcg_data needs pandas; this script runs with plain Python).
+SOURCES = {
+    "databricks": "Databricks e2e_dev.fmcg, loaded from FMCG_Sales_Data_Suraj_Consumer.xlsx",
+    "sqlserver": "SQL Server FMCG.fmcg, loaded from FMCG_Sales_Data_Suraj_Consumer.xlsx",
+    "embedded": "FMCG_Sales_Data_Suraj_Consumer.xlsx, embedded in the model",
+}
+parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+parser.add_argument("--source", choices=list(SOURCES), default="databricks")
+SOURCE = parser.parse_args().source
 
 ROOT = Path(__file__).resolve().parent.parent
 REPORT = ROOT / "FMCG_Sales.Report"
@@ -418,7 +432,7 @@ exec_visuals += [
                      filters=[filter_card("exec.growth_by_category.filter.brand", column("Product", "Brand"))]),
     # Footer: where the numbers come from (left) and when they were last refreshed (right)
     textbox("exec.footer", MARGIN, 1028, 1400, 24, [
-        text_run("Source: Databricks e2e_dev.fmcg, loaded from FMCG_Sales_Data_Suraj_Consumer.xlsx · "
+        text_run(f"Source: {SOURCES[SOURCE]} · "
                  "Data Jan 2025 – Jun 2026 · Values in Indian rupees (₹) · Sell-in = primary sales to "
                  "distributors, sell-out = secondary sales to retailers", 9, text_color=TEXT_MUTED),
     ]),

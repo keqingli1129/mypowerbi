@@ -41,7 +41,7 @@ Python read/write files and print as UTF-8; Windows otherwise uses cp1252, which
 uv run --no-project --with pandas --with openpyxl python -I -X utf8 tools/build_semantic_model.py   # --source databricks|sqlserver|embedded
 python3 -I -X utf8 tools/publish_model.py            # create/update model + refresh (5-15 min on shared capacity; run in background)
 uv run --no-project --with pandas --with openpyxl python -I -X utf8 tools/check_measures.py         # 37 checks, must all pass
-python3 -I -X utf8 tools/build_report.py
+python3 -I -X utf8 tools/build_report.py                  # --source like the model (footer text only)
 powerbi-report-author validate FMCG_Sales.Report     # after every report change
 python3 -I -X utf8 tools/publish_report.py
 uv run --no-project --with pandas --with openpyxl --with pyarrow python -I -X utf8 tools/load_to_databricks.py
