@@ -38,7 +38,7 @@ All scripts run from the repo root (on Windows use `python` instead of `python3`
 Python read/write files and print as UTF-8; Windows otherwise uses cp1252, which breaks ₹/▲/✅:
 
 ```
-uv run --no-project --with pandas --with openpyxl python -I -X utf8 tools/build_semantic_model.py   # --source databricks|embedded
+uv run --no-project --with pandas --with openpyxl python -I -X utf8 tools/build_semantic_model.py   # --source databricks|sqlserver|embedded
 python3 -I -X utf8 tools/publish_model.py            # create/update model + refresh (5-15 min on shared capacity; run in background)
 uv run --no-project --with pandas --with openpyxl python -I -X utf8 tools/check_measures.py         # 37 checks, must all pass
 python3 -I -X utf8 tools/build_report.py

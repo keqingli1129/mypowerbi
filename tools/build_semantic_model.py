@@ -1,13 +1,15 @@
 """Build the FMCG_Sales semantic model (TMDL files).
 
-Two data sources for the same model (only the table partitions and sourceColumn names differ):
+Three data sources for the same model (only the table partitions, parameters and sourceColumn names differ):
   --source databricks (default)  partitions read the Delta tables in Databricks (Step 10);
                                  the Service needs Databricks credentials to refresh
+  --source sqlserver             partitions read the SQL Server tables (Step 13); the Service needs an
+                                 on-premises data gateway to refresh
   --source embedded              rows embedded in each partition as compressed JSON (Steps 4-9);
                                  refreshes without any credentials or gateway
 
 Run from the project root:
-    uv run --no-project --with pandas --with openpyxl python -I tools/build_semantic_model.py [--source embedded]
+    uv run --no-project --with pandas --with openpyxl python -I tools/build_semantic_model.py [--source sqlserver|embedded]
 """
 
 import argparse
@@ -21,10 +23,11 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fmcg_data import (DATABRICKS_CATALOG, DATABRICKS_HOST, DATABRICKS_HTTP_PATH,  # noqa: E402
-                       DATABRICKS_SCHEMA, DIMENSION_KEYS, RELATIONSHIPS, load_tables, snake)
+                       DATABRICKS_SCHEMA, DIMENSION_KEYS, RELATIONSHIPS, SQLSERVER_DATABASE,
+                       SQLSERVER_SCHEMA, SQLSERVER_SERVER, load_tables, snake)
 
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-parser.add_argument("--source", choices=["databricks", "embedded"], default="databricks")
+parser.add_argument("--source", choices=["databricks", "sqlserver", "embedded"], default="databricks")
 SOURCE = parser.parse_args().source
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -333,6 +336,18 @@ def databricks_rows(name):
     ]
 
 
+def sqlserver_rows(name):
+    """M expression that reads the table from SQL Server, using the model's connection parameters."""
+    return [
+        "let",
+        "\t// SQL Server connector: server + database -> schema.table",
+        '\tSource = Sql.Database(#"SQL Server", #"SQL Database"),',
+        f'\tTable = Source{{[Schema = "{SQLSERVER_SCHEMA}", Item = "{snake(name)}"]}}[Data]',
+        "in",
+        "\tTable",
+    ]
+
+
 def table_tmdl(name):
     lines = [f"/// {descriptions[name]}", f"table {q(name)}"]
     if name == "Date":
@@ -364,8 +379,8 @@ def table_tmdl(name):
             lines.append(f"\t\tdataCategory: {opt['category']}")
         if opt.get("sort_by"):
             lines.append(f"\t\tsortByColumn: {q(opt['sort_by'])}")
-        # Databricks columns are snake_case (Delta names can't contain spaces)
-        source_col = snake(col) if SOURCE == "databricks" and name in data else col
+        # Databricks and SQL Server columns are snake_case (Delta names can't contain spaces)
+        source_col = snake(col) if SOURCE in ("databricks", "sqlserver") and name in data else col
         lines += [f"\t\tsourceColumn: {source_col}", ""]
     if name == "Area":
         lines += ["\thierarchy 'Sales Hierarchy'", ""]
@@ -378,6 +393,8 @@ def table_tmdl(name):
                 "{{DateTimeZone.RemoveZone(DateTimeZone.UtcNow())}})"]
     elif SOURCE == "databricks":
         rows = databricks_rows(name)
+    elif SOURCE == "sqlserver":
+        rows = sqlserver_rows(name)
     else:
         rows = embedded_rows(data[name], columns[name])
     lines += [f"\t\t\t\t{line}" for line in rows]
@@ -400,11 +417,14 @@ for fact, column, dim_name in RELATIONSHIPS:
                   f"\ttoColumn: {q(dim_name)}.{q(key)}", ""]
 (DEF_DIR / "relationships.tmdl").write_text("\n".join(rel_lines), encoding="utf-8")
 
-# Connection parameters (Databricks only): one place to change warehouse, catalog or schema
+# Connection parameters: one place to change warehouse/catalog/schema or server/database
 params = {}
 if SOURCE == "databricks":
     params = {"Databricks Host": DATABRICKS_HOST, "Databricks HTTP Path": DATABRICKS_HTTP_PATH,
               "Databricks Catalog": DATABRICKS_CATALOG, "Databricks Schema": DATABRICKS_SCHEMA}
+elif SOURCE == "sqlserver":
+    # must match the gateway connection's server and database exactly (sqlserver_onprem_guide.md, step 6)
+    params = {"SQL Server": SQLSERVER_SERVER, "SQL Database": SQLSERVER_DATABASE}
 
 # Annotations Power BI Desktop writes itself (seen when saving the project in Desktop):
 #   __PBI_TimeIntelligenceEnabled = 0  auto date/time off; we have our own Date table, so Desktop

@@ -38,8 +38,10 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 12b | Page-level filter ("Filters on this page") | ⬜ | |
 | 13 | SQL Server as the source (local SQL Server 2022 Express `.\SQLEXPRESS` on this PC) | 🔄 | |
 | 13a | Database `FMCG`, schema `fmcg`, 10 empty tables (`tools/sqlserver/create_tables.sql`) | ✅ | `87c85b8` |
-| 13b | Load the data (`tools/load_to_sqlserver.py`): row counts and both control sums match | ✅ | (this commit) |
-| 13c | Model reads SQL Server (`build_semantic_model.py --source sqlserver`), Desktop check | ⬜ | |
+| 13b | Load the data (`tools/load_to_sqlserver.py`): row counts and both control sums match | ✅ | `efc1609` |
+| 13c | Model reads SQL Server (`build_semantic_model.py --source sqlserver`): Desktop refresh, same numbers | ✅ | (this commit) |
+| 13d | Report footer names the source (`build_report.py --source`) | ⬜ | |
+| 13e | Gateway, gateway connection, publish and bind (guide steps 5-8), 37 checks | ⬜ | |
 
 ## Data source today
 
