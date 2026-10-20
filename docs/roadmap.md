@@ -42,8 +42,8 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 13c | Model reads SQL Server (`build_semantic_model.py --source sqlserver`): Desktop refresh, same numbers | ✅ | `061307d` |
 | 13d | Report footer names the source (`build_report.py --source`); repo stays on Databricks until 13e | ✅ | `089e3ef` |
 | 13e | Service refreshes from SQL Server (guide steps 5-8) | 🔄 | |
-| 13e1 | Read-only login `powerbi_reader` (`tools/sqlserver/create_reader.sql`): SELECT on schema `fmcg` only | ✅ | (this commit) |
-| 13e2 | On-premises data gateway on this PC | ⬜ | |
+| 13e1 | Read-only login `powerbi_reader` (`tools/sqlserver/create_reader.sql`): SELECT on schema `fmcg` only | ✅ | `83528b0` |
+| 13e2 | On-premises data gateway `FMCG-GW` (standard mode, 3000.334) on this PC: service running, online | ✅ | (installer only) |
 | 13e3 | Gateway connection in the Service (`localhost\SQLEXPRESS` / `FMCG`, `powerbi_reader`) | ⬜ | |
 | 13e4 | Build and publish with `--source sqlserver`, bind to the gateway, refresh, 37 checks | ⬜ | |
 

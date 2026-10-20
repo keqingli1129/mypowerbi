@@ -24,6 +24,8 @@ lessons learned) and `docs/fmcg_report_walkthrough.md` (how everything works).
 | Service credentials | Databricks personal access token (scope BI Tools), created 2026-10-18 with a 13-day lifetime |
 | Refresh schedule | Configured daily 06:00 Central, email on failure; currently switched **off** |
 | Fallback source | `build_semantic_model.py --source embedded` (data embedded in the model, no credentials) |
+| SQL Server source (Step 13) | Local SQL Server 2022 Express `localhost\SQLEXPRESS` on the Windows PC, database `FMCG`, schema `fmcg`; read-only login `powerbi_reader` (password kept by the owner, not in Git) |
+| Gateway | On-premises data gateway `FMCG-GW` (standard mode) on the same PC, id `aa6c1d9c-26de-4315-bd24-a03d9c82e078`; the PC must be on for Service refreshes |
 
 `tools/.published.env` is git-ignored. On a new machine, recreate it with:
 
