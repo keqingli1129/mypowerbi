@@ -45,7 +45,7 @@ Status: ✅ done · 🔄 in progress · ⬜ to do
 | 13e1 | Read-only login `powerbi_reader` (`tools/sqlserver/create_reader.sql`): SELECT on schema `fmcg` only | ✅ | `83528b0` |
 | 13e2 | On-premises data gateway `FMCG-GW` (standard mode, 3000.334) on this PC: service running, online | ✅ | (installer only) |
 | 13e3 | Gateway connection `FMCG SQL Server` in the Service (`localhost\SQLEXPRESS;FMCG`, Basic `powerbi_reader`, no SSO) | ✅ | (Service only) |
-| 13e4 | Publish with `--source sqlserver`; `publish_model.py` binds to the gateway, refresh ~20 s, 37 checks pass, report footer names SQL Server | ✅ | (this commit) |
+| 13e4 | Publish with `--source sqlserver`; `publish_model.py` binds to the gateway, refresh ~20 s, 37 checks pass, report footer names SQL Server | ✅ | `b2fa873` |
 
 ## Data source today
 
